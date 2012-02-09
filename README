@@ -1,0 +1,15 @@
+NOTE: This program is in a very early state and should probably not be used
+      by anyone except people who want to help with development. The FIT files
+      it produces are sometimes padded with NULLs making them hard to use
+      with other program. There is also close to no error checking. I'm only
+      making this avaible early due to interest.
+
+Usage: python garmin.py
+
+This program extracts all activity FIT files from a Garmin Forerunner 610
+watch and writes them to the current directory. The first time it runs it
+attempts to sync with the watch. This produces an authfile which is written
+to the current directory. On startup this program will try to read that file
+to avoid having to resync.
+
+
