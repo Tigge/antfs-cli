@@ -1,0 +1,13 @@
+# This files changes the mode of the Dynastream ANT UsbStick2 so all users 
+# can read and write to it.
+#
+# This file should go into '/etc/udev/rules.d'. Note that this should go in
+# at a later stage (70+ should be enough) to allow the usb attributes to be
+# populated, so don't change the file so it gets sorted before that stage.
+#
+# If you do not want all users to be able to read and write to your usb stick
+# you might want to adjust the mode to 0660 and restrict it to a group of
+# users with GROUP="ant" or the mode to 0600 and restrict it to a single user
+# with OWNER="user".
+#
+SUBSYSTEM=="usb", ATTR{idVendor}=="0fcf", ATTR{idProduct}=="1008", MODE="0666"

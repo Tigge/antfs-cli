@@ -1,8 +1,27 @@
-NOTE: This program is in a very early state and should probably not be used
-      by anyone except people who want to help with development. The FIT files
-      it produces are sometimes padded with NULLs making them hard to use
-      with other program. There is also close to no error checking. I'm only
-      making this avaible early due to interest.
+Important Notes
+==============================================================================
+
+This program is in a very early state and should probably not be used by
+anyone except people who want to help with development. The FIT files it
+produces are sometimes padded with NULL making them hard to use with other
+program. There is also close to no error checking. I'm only making this
+available early due to interest.
+
+Requirements
+==============================================================================
+
+- PyUSB 1.0 (seems to be a bug which makes it segfaults on version before
+  Alpha 2). It is recommended to use pip to install PyUSB:
+  
+  pip install pyusb
+
+- Install udev rules. This is only needed if you want to avoid running the
+  program as root. Install with:
+
+  sudo cp resources/70-ant-usbstick2.rules /etc/udev/rules.d
+
+Usage
+==============================================================================
 
 Usage: python garmin.py
 
@@ -10,6 +29,5 @@ This program extracts all activity FIT files from a Garmin Forerunner 610
 watch and writes them to the current directory. The first time it runs it
 attempts to sync with the watch. This produces an authfile which is written
 to the current directory. On startup this program will try to read that file
-to avoid having to resync.
-
+to avoid having to re-sync.
 
