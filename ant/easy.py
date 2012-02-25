@@ -23,6 +23,7 @@
 import array
 import collections
 import threading
+import logging
 
 from base import Ant, Message
 
@@ -30,6 +31,8 @@ class EasyAnt(Ant):
     
     def __init__(self, idVendor, idProduct):
         Ant.__init__(self, idVendor, idProduct)
+        
+        self._logger = logging.getLogger("garmin.ant.easy")
         
         self._responses_cond = threading.Condition()
         self._responses      = collections.deque()
@@ -58,8 +61,8 @@ class EasyAnt(Ant):
             
             # Last sequence
             if sequence >= 4:
-                print self.burst_data
-                print reduce(lambda x, y: x + chr(y), self.burst_data, "")
+                self._logger.debug("Burst data: %s", self.burst_data)
+                self._logger.debug("            %s", reduce(lambda x, y: x + chr(y), self.burst_data, ""))
                 #phase += 1
                 #self.on_burst_data(burst_data)
                 message._data = self.burst_data
@@ -165,23 +168,23 @@ class EasyAnt(Ant):
         return self.wait_for_response_for(Message.ID.RESPONSE_CHANNEL)
 
     def send_acknowledged_data(self, channel, broadcastData):
-        print "send acknowledged", channel
+        self._logger.debug("send acknowledged %s", channel)
         Ant.send_acknowledged_data(self, channel, broadcastData)
         x = self.wait_for_event(Message.Code.EVENT_TRANSFER_TX_COMPLETED)
-        print "done acknowledged", channel
+        self._logger.debug("done acknowledged %s", channel)
         return x
 
     def send_burst_transfer_packet(self, channelSeq, data, first):
-        print "send burst packet", data
+        self._logger.debug("send burst packet %s", data)
         Ant.send_burst_transfer_packet(self, channelSeq, data, first)
 
 
     def send_burst_transfer(self, channel, data):
-        print "send burst", channel
+        self._logger.debug("send burst %s", channel)
         Ant.send_burst_transfer(self, channel, data)
         self.wait_for_event(Message.Code.EVENT_TRANSFER_TX_START)
         x = self.wait_for_event(Message.Code.EVENT_TRANSFER_TX_COMPLETED)
-        print "done burst", channel
+        self._logger.debug("done burst %s", channel)
         return x
         
 
@@ -191,7 +194,7 @@ class EasyAnt(Ant):
             
             if message == None:
                 time.sleep(1)
-                print "npk"
+                self._logger.debug("npk")
                 continue
             
             if message._id == Message.ID.BURST_TRANSFER_DATA:
@@ -199,8 +202,8 @@ class EasyAnt(Ant):
             elif message._id == Message.ID.BROADCAST_DATA:
                 self.on_broadcast_data(message._data)
             else:
-                print "MESSAGE UNKNOWN", message._id, message._data
-                print message
+                self._logger.warning("MESSAGE UNKNOWN %s, %s", message._id, message._data)
+                self._logger.warning("                %s", message)
 
     def on_burst_data(self, data):
         pass

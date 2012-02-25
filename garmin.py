@@ -56,6 +56,8 @@ class Garmin(EasyAnt):
         EasyAnt.__init__(self, ID_VENDOR, ID_PRODUCT)
         #self.start()
         
+        self._logger = logging.getLogger("garmin")
+        
         self.state = Garmin.State.INITIALIZING
         
         self.myid     = [0xff, 0xff, 0xff, 0xff]
@@ -84,8 +86,8 @@ class Garmin(EasyAnt):
             self.myid = d[0:4]
             self.auth = d[4:12]
             self.pair = False
-            print "loaded authfile:"
-            print d, self.myid, self.auth, self.pair
+            self._logger.debug("loaded authfile:")
+            self._logger.debug("%s, %s, %s, %s", d, self.myid, self.auth, self.pair)
 
     def write_authfile(self):
         with open(os.path.expanduser(self.authfile), 'wb') as f:
@@ -121,7 +123,7 @@ class Garmin(EasyAnt):
         self.state = Garmin.State.SEARCHING
 
     def ant_fs_next(self, filedat):
-        print "ant fs next"
+        self._logger.debug("ant fs next")
         if len(self.fetch) == 0:
             return
         
@@ -130,34 +132,37 @@ class Garmin(EasyAnt):
         self.send_burst_transfer(0x00, [\
             [0x44, 0x09,  fno, 0x00, 0x00, 0x00, 0x00, 0x00], \
             [0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]])
-        print "ant fs next request sent"
+        self._logger.debug("ant fs next request sent")
 
     def ant_fs_continute(self, filedat, cont_from, extra):
 
         (fno, ftype, flags, size, date_mod) = filedat
         cfrom = list(map(ord, struct.pack("<I", cont_from)))
-        print "ant fs continue", filedat, cont_from, cfrom
+        self._logger.debug("ant fs continue %s, %s, %s", filedat, cont_from, cfrom)
         
         self.send_burst_transfer(0x00, [\
             [0x44, 0x09,  fno, 0x00] + cfrom, \
             [0x00, 0x00] + list(extra) +  [0x00, 0x00, 0x00, 0x00]])
-        print "ant fs continue request sent"
+        self._logger.debug("ant fs continue request sent")
 
     def ant_fs_done(self, filedat, filecontent, totsize):
-        print "ant fs file is done"
+        self._logger.debug("ant fs file is done")
         (fno, ftype, flags, size, date_mod) = filedat
-        print "got", totsize, "want", size
-        with open(str.format("{}-{:02x}-{}-{}-{}.fit", fno, ftype, date_mod.isoformat("_"), size, totsize), "w") as f:
-            filecontent.tofile(f)
+        self._logger.debug("got %s, want %s", totsize, size)
         
+        
+        filename = str.format("{}-{:02x}-{}-{}-{}.fit", fno, ftype, date_mod.isoformat("_"), size, totsize)
+        with open(filename, "w") as f:
+            filecontent.tofile(f)
+        print "Done downloading", filename
 
     def got_ant_fs(self, data):
-        print "ant fs data"
+        self._logger.debug("ant fs data")
         if len(self.fetch) == 0:
-            print "Got ANT-FS packet"
+            self._logger.debug("Got ANT-FS packet")
             (version, length, date1, date2) = \
                 struct.unpack("<BBxxxxxxII", data[24:40])
-            print version, length, date1, date2
+            self._logger.debug("ver %s, length %s, date1 %s, date2 %s", version, length, date1, date2)
             for i in range(40+16+16 , len(data) - 8, 16):
                 (fno, ftype, fsub, flags, size, mod) = \
                     struct.unpack("<HBBxxxBII", data[i:i+16])
@@ -173,9 +178,9 @@ class Garmin(EasyAnt):
             end    = data[-8:]
             self.fetchdat.extend(rdata)
             
-            print "actual length", len(self.fetchdat), "given length", self.fetch[0][3]
+            self._logger.debug("actual length %d, given length %d", len(self.fetchdat), self.fetch[0][3])
             (pack_length, sent_length, tot_length) = struct.unpack("<12xIII", header)
-            print "header", len(header), pack_length, sent_length, tot_length
+            self._logger.debug("header %d, %d, %d ,%d", len(header), pack_length, sent_length, tot_length)
             #print header
             #print rdata
             #print end
@@ -186,9 +191,9 @@ class Garmin(EasyAnt):
             if(sent_length + pack_length == tot_length):
                 # File done
                 
-                print "File done"
-                print self.fetch[0], len(self.fetchdat)
-                print self.fetchdat
+                self._logger.debug("File done")
+                self._logger.debug("%s, %d", self.fetch[0], len(self.fetchdat))
+                self._logger.debug("%s",  self.fetchdat)
                 
                 self.ant_fs_done(self.fetch[0], self.fetchdat, tot_length)
                 
@@ -205,7 +210,7 @@ class Garmin(EasyAnt):
         #print "burst data", self.state, data
         
         if self.state == Garmin.State.REQUESTID:
-            print len(data), len(data[11:]), data[11:]
+            self._logger.debug("%d, %d, %s", len(data), len(data[11:]), data[11:])
             (strlen, unitid, name) = struct.unpack("<BI14s", data[11:-2])
             print "String length: ", strlen
             print "Unit ID:       ", unitid
@@ -236,13 +241,13 @@ class Garmin(EasyAnt):
                 self.state = Garmin.State.AUTHENTICATING
 
         elif self.state == Garmin.State.PAIRING:
-            print "pairing is done"
+            self._logger.debug("pairing is done")
             self.auth = data[16:24]
             self.write_authfile()
             self.state = Garmin.State.FETCH
         
         elif self.state == Garmin.State.AUTHENTICATING:
-            print "auth is done"
+            self._logger.debug("auth is done")
             self.state = Garmin.State.FETCH
         
         elif self.state == Garmin.State.FETCH:
@@ -256,21 +261,21 @@ class Garmin(EasyAnt):
         #print "broadcast data", self.state, data
         
         if self.last != data:
-            print "new state"
-            print data
+            self._logger.debug("new state")
+            self._logger.debug(data)
         #else:
         #    return
         
         if self.state == Garmin.State.SEARCHING:
-            print "found device"
+            self._logger.debug("found device")
             can_pair = bool(data[1] & 0b00001000)
             new_data = bool(data[1] & 0b00100000)
-            print "pair", can_pair, "data", new_data
+            self._logger.debug("pair %s, data %s", can_pair, new_data)
 
             self.request_message(0x00, Message.ID.RESPONSE_CHANNEL_ID)
             self.send_acknowledged_data(0x00, [0x44, 0x02, self.myfreq, 0x04] + self.myid)
             
-            print "\tNew period, search, rf req"
+            self._logger.debug("\tNew period, search, rf req")
             # New period, search timeout
             self.set_channel_period(0x00, [0x00, 0x10])
             self.set_channel_search_timeout(0x00, 0x03)
@@ -279,7 +284,7 @@ class Garmin(EasyAnt):
             self.state = Garmin.State.NEWFREQUENCY
         
         elif self.state == Garmin.State.NEWFREQUENCY:
-            print "talking on new frequency"
+            self._logger.debug("talking on new frequency")
             self.send_acknowledged_data(0x00, [0x44, 0x04, 0x01, 0x00] + self.myid)
             
             self.state = Garmin.State.REQUESTID
@@ -320,13 +325,12 @@ class Garmin(EasyAnt):
 def main():
 
     # Set up logging
-    logger = logging.getLogger("ant")
+    logger = logging.getLogger("garmin")
     logger.setLevel(logging.DEBUG)
     handler = logging.FileHandler("garmin.log", "w")
     #handler = logging.StreamHandler()
-    handler.setFormatter(logging.Formatter(fmt='%(asctime)s - %(message)s'))
+    handler.setFormatter(logging.Formatter(fmt='%(asctime)s - %(name)-12s: %(levelname)-8s - %(message)s'))
     logger.addHandler(handler)
-
 
     g = Garmin()
     g.gogo()

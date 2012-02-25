@@ -128,6 +128,9 @@ class Message:
 
 
     def __init__(self, mId, data):
+    
+        self._logger = logging.getLogger("garmin.ant.base")
+    
         self._sync     = 0xa4
         self._length   = len(data)
         self._id       = mId
@@ -249,29 +252,23 @@ class Ant(threading.Thread):
 
         threading.Thread.__init__(self)
 
-        self._logger = logging.getLogger("ant")
+        self._logger = logging.getLogger("garmin.ant.base")
 
         # Find USB device
-        self._logger.debug("Find device, vendor %#04x, product %#04x", idVendor, idProduct)
+        self._logger.debug("USB Find device, vendor %#04x, product %#04x", idVendor, idProduct)
         dev = usb.core.find(idVendor=idVendor, idProduct=idProduct)
 
         # was it found?
         if dev is None:
             raise ValueError('Device not found')
 
-        sys.stdout.write("configval\n")
+        self._logger.debug("USB Config values")
         for cfg in dev:
-            sys.stdout.write(str(cfg.bConfigurationValue) + '\n')
+            self._logger.debug("%s", cfg.bConfigurationValue)
             for intf in cfg:
-                sys.stdout.write('\t' + \
-                                 str(intf.bInterfaceNumber) + \
-                                 ',' + \
-                                 str(intf.bAlternateSetting) + \
-                                 '\n')
+                self._logger.debug("\t%s, %s", str(intf.bInterfaceNumber), str(intf.bAlternateSetting))
                 for ep in intf:
-                    sys.stdout.write('\t\t' + \
-                                     str(ep.bEndpointAddress) + \
-                                     '\n')
+                    self._logger.debug("\t\t%s", str(ep.bEndpointAddress))
 
         # set the active configuration. With no arguments, the first
         # configuration will be the active one
@@ -297,7 +294,7 @@ class Ant(threading.Thread):
                 usb.util.ENDPOINT_OUT
         )
 
-        print self._out, self._out.bEndpointAddress
+        self._logger.debug("UBS Endpoint out: %s, %s", self._out, self._out.bEndpointAddress)
 
         self._in = usb.util.find_descriptor(
             intf,
@@ -308,7 +305,7 @@ class Ant(threading.Thread):
                 usb.util.ENDPOINT_IN
         )
 
-        print self._in, self._in.bEndpointAddress
+        self._logger.debug("UBS Endpoint in: %s, %s", self._in, self._in.bEndpointAddress)
 
         assert self._out is not None and self._in is not None
 
@@ -321,7 +318,6 @@ class Ant(threading.Thread):
 
     def run(self):
 
-        print "in"
         self._logger.debug("Ant runner started")
 
         while self._running:
@@ -459,7 +455,7 @@ class Ant(threading.Thread):
         self.write_message_timeslot(message)
 
     def send_burst_transfer(self, channel, data):
-        print "send burst transfer", channel, data
+        self._logger.debug("Send burst transfer, chan %s, data %s", channel, data)
         #with self._message_queue_cond:
         for i in range(len(data)):
 
