@@ -150,8 +150,9 @@ class Garmin(EasyAnt):
         (fno, ftype, flags, size, date_mod) = filedat
         self._logger.debug("got %s, want %s", totsize, size)
         
+        file_date_time = date_mod.strftime("%Y-%m-%d_%H-%M-%S")
         
-        filename = str.format("{}-{:02x}-{}-{}-{}.fit", fno, ftype, date_mod.isoformat("_"), size, totsize)
+        filename = str.format("{}-{:02x}-{}-{}-{}.fit", fno, ftype, file_date_time, size, totsize)
         with open(filename, "w") as f:
             filecontent.tofile(f)
         print "Done downloading", filename
