@@ -20,6 +20,12 @@ Requirements
 
   sudo cp resources/ant-usbstick2.rules /etc/udev/rules.d
 
+Supported devices
+==============================================================================
+
+ - Forerunner 610
+ - Forerunner 910XT
+
 Usage
 ==============================================================================
 
