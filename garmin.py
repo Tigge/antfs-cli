@@ -22,6 +22,8 @@
 
 from ant.base import Ant, Message
 from ant.easy import EasyAnt
+import ant.fs
+
 import utilities
 
 import logging
@@ -52,6 +54,7 @@ class Garmin(EasyAnt):
         REQUESTID      = 4
         AUTHENTICATING = 5
         FETCH          = 6
+        FS             = 7
 
     def __init__(self):
         # Create Ant
@@ -134,90 +137,42 @@ class Garmin(EasyAnt):
         
         self.state = Garmin.State.SEARCHING
 
-    def ant_fs_next(self, filedat):
-        self._logger.debug("ant fs next")
-        if len(self.fetch) == 0:
-            return
-        
-        (fno, ftype, flags, size, date_mod) = filedat
+    def get_filename(self, f):
+        file_date_time = f.get_date().strftime("%Y-%m-%d_%H-%M-%S")
+        return str.format("{}-{:02x}-{}.fit", file_date_time,
+                          f.get_type(), f.get_size())
 
-        self.send_burst_transfer(0x00, [\
-            [0x44, 0x09,  fno, 0x00, 0x00, 0x00, 0x00, 0x00], \
-            [0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]])
-        self._logger.debug("ant fs next request sent")
+    def get_filepath(self, f):
+        return os.path.join(self.config_dir, self.get_filename(f))
 
-    def ant_fs_continute(self, filedat, cont_from, extra):
+    def download_index_done(self, index):
+        self._index = index
+        for f in self._index._files:
+            print " - {0}:\t{1}\t{2}\t{3}".format(f.get_index(), f.get_type(),
+                  f.get_size(), f.get_date())
+        # Skip first two files (seems special)
+        self._index._files = self._index._files[2:]
+        self.download_file_next()
 
-        (fno, ftype, flags, size, date_mod) = filedat
-        cfrom = list(map(ord, struct.pack("<I", cont_from)))
-        self._logger.debug("ant fs continue %s, %s, %s", filedat, cont_from, cfrom)
-        
-        self.send_burst_transfer(0x00, [\
-            [0x44, 0x09,  fno, 0x00] + cfrom, \
-            [0x00, 0x00] + list(extra) +  [0x00, 0x00, 0x00, 0x00]])
-        self._logger.debug("ant fs continue request sent")
-
-    def ant_fs_done(self, filedat, filecontent, totsize):
-        self._logger.debug("ant fs file is done")
-        (fno, ftype, flags, size, date_mod) = filedat
-        self._logger.debug("got %s, want %s", totsize, size)
-        
-        file_date_time = date_mod.strftime("%Y-%m-%d_%H-%M-%S")
-        
-        filename = str.format("{}-{:02x}-{}-{}-{}.fit", fno, ftype, file_date_time, size, totsize)
-        with open(filename, "w") as f:
-            filecontent.tofile(f)
-        print "Done downloading", filename
-
-    def got_ant_fs(self, data):
-        self._logger.debug("ant fs data")
-        if len(self.fetch) == 0:
-            self._logger.debug("Got ANT-FS packet")
-            (version, length, date1, date2) = \
-                struct.unpack("<BBxxxxxxII", data[24:40])
-            self._logger.debug("ver %s, length %s, date1 %s, date2 %s", version, length, date1, date2)
-            for i in range(40+16+16 , len(data) - 8, 16):
-                (fno, ftype, fsub, flags, size, mod) = \
-                    struct.unpack("<HBBxxxBII", data[i:i+16])
-                date_mod = datetime.datetime.fromtimestamp(mod + 631065600)
-                print fno, "\t", ftype, "\t", flags, "\t", size, "\t", date_mod
-                self.fetch.append((fno, ftype, flags, size, date_mod))
-            
-            self.ant_fs_next(self.fetch[0])
-            
-        else:
-            header = data[0:24]
-            rdata  = data[24:-8]
-            end    = data[-8:]
-            self.fetchdat.extend(rdata)
-            
-            self._logger.debug("actual length %d, given length %d", len(self.fetchdat), self.fetch[0][3])
-            (pack_length, sent_length, tot_length) = struct.unpack("<12xIII", header)
-            self._logger.debug("header %d, %d, %d ,%d", len(header), pack_length, sent_length, tot_length)
-            #print header
-            #print rdata
-            #print end
-            #print "tot:"
-            #print self.fetchdat
-            
-            
-            if(sent_length + pack_length == tot_length):
-                # File done
-                
-                self._logger.debug("File done")
-                self._logger.debug("%s, %d", self.fetch[0], len(self.fetchdat))
-                self._logger.debug("%s",  self.fetchdat)
-                
-                self.ant_fs_done(self.fetch[0], self.fetchdat, tot_length)
-                
-                # reset
-                self.fetch.pop(0)
-                self.fetchdat = array.array("B")
-                
-                self.ant_fs_next(self.fetch[0])
-                
+    def download_file_next(self):
+        if len(self._index._files) > 0:
+            f = self._index._files.pop(0)
+            if os.path.exists(self.get_filepath(f)):
+                print "Skipping", self.get_filename(f)
+                self.download_file_next()
             else:
-                 self.ant_fs_continute(self.fetch[0], pack_length + sent_length, end[-2:])
+                print "Downloading", self.get_filename(f),
+                sys.stdout.flush()
+                self.fs.download(f)
+        else:
+            print "Done!"
+            sys.exit(0)
+
+    def download_file_done(self, f):
+        with open(self.get_filepath(f), "w") as fd:
+            f.get_data().tofile(fd)
+        print "- done"
+        self.download_file_next()
 
     def on_burst_data(self, data):
         #print "burst data", self.state, data
@@ -270,12 +225,14 @@ class Garmin(EasyAnt):
             self._logger.debug("auth is done")
             self.state = Garmin.State.FETCH
         
-        elif self.state == Garmin.State.FETCH:
+        elif self.state == Garmin.State.FS:
             
             if len(data) > 40 and data[8] == 0x44 and data[9] == 0x89:
-            
-                self.got_ant_fs(data)
-    
+                res = self.fs.on_data(data)
+                if isinstance(res, ant.fs.Directory):
+                    self.download_index_done(res)
+                elif isinstance(res, ant.fs.File):
+                    self.download_file_done(res)
 
     def on_broadcast_data(self, data):
         #print "broadcast data", self.state, data
@@ -313,11 +270,12 @@ class Garmin(EasyAnt):
             self.send_burst_transfer(0x00, [\
                 [0x44, 0x0a, 0xfe, 0xff, 0x10, 0x00, 0x00, 0x00], \
                 [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]])
-        
-            self.send_burst_transfer(0x00, [\
-                [0x44, 0x09, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00], \
-                [0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]])
-
+            print "Downloading index..."
+            self.fs.download_index()
+            #self.send_burst_transfer(0x00, [\
+            #    [0x44, 0x09, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00], \
+            #    [0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]])
+            self.state = Garmin.State.FS
         self.last = data
 
 
