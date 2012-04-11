@@ -26,8 +26,24 @@ Usage
 Usage: python garmin.py
 
 This program extracts all activity FIT files from a Garmin Forerunner 610
-watch and writes them to the current directory. The first time it runs it
-attempts to sync with the watch. This produces an authfile which is written
-to the current directory. On startup this program will try to read that file
-to avoid having to re-sync.
+watch and writes them to a folder (see file locations below). The first time
+it runs it attempts to sync with the watch. This produces an authfile which
+is written to the same folder. On startup this program will try to read that
+file to avoid having to re-sync.
+
+File locations
+==============================================================================
+
+Simple answer (probably correct for most people):
+
+ - Your files are placed in ~/.config/garmin-extractor/
+
+Correct answer:
+
+ - FIT files and authfiles are stored in an the location specified by the XDG
+   Base Directory specification. It uses the $XDG_CONFIG_HOME with
+   $HOME/.config as backup. In this directory a garmin-extractor folder is
+   created in which a folder for each device is created. Both the .FIT files
+   and authfile are stored in this device-specific folder.
+
 
