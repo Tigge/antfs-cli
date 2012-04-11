@@ -22,6 +22,7 @@
 
 from ant.base import Ant, Message
 from ant.easy import EasyAnt
+import utilities
 
 import logging
 import threading
@@ -39,6 +40,7 @@ import traceback
 ID_VENDOR  = 0x0fcf
 ID_PRODUCT = 0x1008
 
+PRODUCT_NAME = "garmin-extractor"
 
 class Garmin(EasyAnt):
 
@@ -67,21 +69,24 @@ class Garmin(EasyAnt):
         
         self.last     = array.array("B")
         
-        self.authfile = "~/gant/authfile"
-        
         self.fetch    = []
         self.fetchdat = array.array("B")
         
-        if not os.path.exists(os.path.expanduser("~/gant")):
-            os.mkdir(os.path.expanduser("~/gant"))
-        
-        try:
-            self.read_authfile()
-        except:
-            pass
+        self.create_directories()
+        self.fs       = ant.fs.Manager(self)
 
-    def read_authfile(self):
-        with open(os.path.expanduser(self.authfile), 'rb') as f:
+    def create_directories(self):
+        xdg = utilities.XDG(PRODUCT_NAME)
+        self.config_dir = xdg.get_config_dir()
+        
+        if not os.path.exists(self.config_dir):
+            os.makedirs(self.config_dir)
+
+    def read_authfile(self, unitid):
+
+        path = os.path.join(self.config_dir, str(unitid))
+        
+        with open(os.path.join(path, "authfile"), 'rb') as f:
             d = list(struct.unpack("<4B8B", f.read()))
             self.myid = d[0:4]
             self.auth = d[4:12]
@@ -89,10 +94,17 @@ class Garmin(EasyAnt):
             self._logger.debug("loaded authfile:")
             self._logger.debug("%s, %s, %s, %s", d, self.myid, self.auth, self.pair)
 
-    def write_authfile(self):
-        with open(os.path.expanduser(self.authfile), 'wb') as f:
+    def write_authfile(self, unitid):
+    
+        path = os.path.join(self.config_dir, str(unitid))
+        if not os.path.exists(path):
+            os.mkdir(path)
+        
+        with open(os.path.join(path, "authfile"), 'wb') as f:
             f.write("".join(map(chr, self.myid)))
             f.write("".join(map(chr, self.auth)))
+            self._logger.debug("wrote authfile:")
+            self._logger.debug("%s, %s, %s", self.myid, self.auth, self.pair)
 
     def init(self):
         print "Request basic information..."
@@ -217,6 +229,14 @@ class Garmin(EasyAnt):
             print "Unit ID:       ", unitid
             print "Product name:  ", name
             
+            self.unitid = unitid
+            
+            try:
+                self.read_authfile(self.unitid)
+            except:
+                if not self.pair:
+                    raise Exception("Have no authentication data, and watch is not set for initial pairing")
+            
             #TODO, pair or resume
             if self.pair:
                 self.send_acknowledged_data(0x00, [0x44, 0x05, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00])
@@ -234,7 +254,6 @@ class Garmin(EasyAnt):
                 
             else:
                 
-                
                 self.send_burst_transfer(0x00, [\
                     [0x44, 0x04, 0x03, 0x08] + self.myid, self.auth, \
                     [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]])
@@ -244,7 +263,7 @@ class Garmin(EasyAnt):
         elif self.state == Garmin.State.PAIRING:
             self._logger.debug("pairing is done")
             self.auth = data[16:24]
-            self.write_authfile()
+            self.write_authfile(self.unitid)
             self.state = Garmin.State.FETCH
         
         elif self.state == Garmin.State.AUTHENTICATING:
