@@ -147,7 +147,8 @@ class Message:
                    self._length, self._checksum)
 
     def get(self):
-        return array.array('B', [self._sync, self._length, self._id] + self._data + [self._checksum])
+        return array.array('B', [self._sync, self._length, self._id]
+                           + self._data + [self._checksum])
 
     '''
     Parse a message from an array
@@ -322,6 +323,10 @@ class Ant(threading.Thread):
 
         self._running = True
 
+    def stop(self):
+        self._running = False
+        self.join()
+
     def run(self):
 
         _logger.debug("Ant runner started")
@@ -387,17 +392,17 @@ class Ant(threading.Thread):
     def write_message(self, message):
         data = message.get()
         self._out.write(data + array.array('B', [0x00, 0x00]))
-        #time.sleep(0.05)
         _logger.debug("Write data: %s", _format_list(data))
 
 
     def read_message(self):
-        # If we have a message in buffer alreadroom for a message, and
+        # If we have a message in buffer already, return it
         if len(self._buffer) >= 5 and len(self._buffer) >= self._buffer[1] + 4:
             packet       = self._buffer[:self._buffer[1] + 4]
             self._buffer = self._buffer[self._buffer[1] + 4:]
             
             return Message.parse(packet)
+        # Otherwise, read some data and call the function again
         else:
             data = self._in.read(4096)
             self._buffer.extend(data)
@@ -405,12 +410,7 @@ class Ant(threading.Thread):
                           _format_list(data), _format_list(self._buffer))
             return self.read_message()
 
-        #data = self._in.read(4096)
-        #self._logger.debug("Got data: %s", reduce(lambda x, y: x + str.format("{:02x} ", y), data, ""))
-        #return Message.parse(data)
-
     # Ant functions
-
 
     def unassign_channel(channel):
         pass
@@ -460,26 +460,17 @@ class Ant(threading.Thread):
         self.write_message_timeslot(message)
 
     def send_burst_transfer(self, channel, data):
-        #with self._message_queue_cond:
         _logger.debug("Send burst transfer, chan %s, data %s", channel, data)
         for i in range(len(data)):
-
             sequence = i % 4
             if i == len(data) - 1:
                 sequence = sequence | 0b100
             channelSeq = channel | sequence << 5
-
             self.send_burst_transfer_packet(channelSeq, data[i], first=i==0)
-
-
 
     def response_function(self, message):
         pass
 
     def channel_event_function(self, message):
         pass
-
-
-
-
 

@@ -291,13 +291,8 @@ class Garmin(EasyAnt):
             traceback.print_stack()
             traceback.print_exc()
         finally:
-                
-            print "was killed"
-            self._running = False
-            self.join()
-            
+            self.stop()
             sys.exit()
-        
 
 
 def main():
