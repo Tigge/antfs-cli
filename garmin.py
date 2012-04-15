@@ -227,8 +227,7 @@ class Garmin(EasyAnt):
             self.state = Garmin.State.FETCH
         
         elif self.state == Garmin.State.FS:
-            
-            if len(data) > 40 and data[8] == 0x44 and data[9] == 0x89:
+            if len(data) >= 32 and data[8] == 0x44 and data[9] == 0x89:
                 res = self.fs.on_data(data)
                 if isinstance(res, ant.fs.Directory):
                     self.download_index_done(res)
