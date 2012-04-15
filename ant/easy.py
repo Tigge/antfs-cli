@@ -27,12 +27,12 @@ import logging
 
 from base import Ant, Message
 
+_logger = logging.getLogger("garmin.ant.easy")
+
 class EasyAnt(Ant):
     
     def __init__(self, idVendor, idProduct):
         Ant.__init__(self, idVendor, idProduct)
-        
-        self._logger = logging.getLogger("garmin.ant.easy")
         
         self._responses_cond = threading.Condition()
         self._responses      = collections.deque()
@@ -61,8 +61,8 @@ class EasyAnt(Ant):
             
             # Last sequence
             if sequence >= 4:
-                self._logger.debug("Burst data: %s", self.burst_data)
-                self._logger.debug("            %s", reduce(lambda x, y: x + chr(y), self.burst_data, ""))
+                _logger.debug("Burst data: %s", self.burst_data)
+                _logger.debug("            %s", reduce(lambda x, y: x + chr(y), self.burst_data, ""))
                 #phase += 1
                 #self.on_burst_data(burst_data)
                 message._data = self.burst_data
@@ -78,7 +78,7 @@ class EasyAnt(Ant):
         #elif message._id == Message.ID.BROADCAST_DATA:
             #self.on_broadcast_data(message._data[1:])
         
-        self._logger.debug("channel event function %r", message)
+        _logger.debug("channel event function %r", message)
         self._event_cond.acquire()
         self._events.append(message)
         self._event_cond.notify()
@@ -130,10 +130,10 @@ class EasyAnt(Ant):
 
 
     def request_message(self, channel, messageId):
-        self._logger.debug("requesting message %#02x", messageId)
+        _logger.debug("requesting message %#02x", messageId)
         Ant.request_message(self, channel, messageId)
-        self._logger.debug("done requesting message %#02x", messageId)
         return self.wait_for_response_for(messageId)
+        _logger.debug("done requesting message %#02x", messageId)
 
     def reset_system(self):
         Ant.reset_system(self)
@@ -168,23 +168,23 @@ class EasyAnt(Ant):
         return self.wait_for_response_for(Message.ID.RESPONSE_CHANNEL)
 
     def send_acknowledged_data(self, channel, broadcastData):
-        self._logger.debug("send acknowledged %s", channel)
+        _logger.debug("send acknowledged data %s", channel)
         Ant.send_acknowledged_data(self, channel, broadcastData)
         x = self.wait_for_event(Message.Code.EVENT_TRANSFER_TX_COMPLETED)
-        self._logger.debug("done acknowledged %s", channel)
+        _logger.debug("done sending acknowledged data %s", channel)
         return x
 
     def send_burst_transfer_packet(self, channelSeq, data, first):
-        self._logger.debug("send burst packet %s", data)
+        _logger.debug("send burst transfer packet %s", data)
         Ant.send_burst_transfer_packet(self, channelSeq, data, first)
 
 
     def send_burst_transfer(self, channel, data):
-        self._logger.debug("send burst %s", channel)
+        _logger.debug("send burst transfer %s", channel)
         Ant.send_burst_transfer(self, channel, data)
         self.wait_for_event(Message.Code.EVENT_TRANSFER_TX_START)
         x = self.wait_for_event(Message.Code.EVENT_TRANSFER_TX_COMPLETED)
-        self._logger.debug("done burst %s", channel)
+        _logger.debug("done sending burst transfer %s", channel)
         return x
         
 
@@ -194,7 +194,7 @@ class EasyAnt(Ant):
             
             if message == None:
                 time.sleep(1)
-                self._logger.debug("npk")
+                _logger.debug("npk")
                 continue
             
             if message._id == Message.ID.BURST_TRANSFER_DATA:
@@ -202,8 +202,8 @@ class EasyAnt(Ant):
             elif message._id == Message.ID.BROADCAST_DATA:
                 self.on_broadcast_data(message._data)
             else:
-                self._logger.warning("MESSAGE UNKNOWN %s, %s", message._id, message._data)
-                self._logger.warning("                %s", message)
+                _logger.warning("MESSAGE UNKNOWN %s, %s", message._id, message._data)
+                _logger.warning("                %s", message)
 
     def on_burst_data(self, data):
         pass

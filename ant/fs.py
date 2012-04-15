@@ -168,7 +168,7 @@ class Manager:
 
             # File downloaded completely
             if(packet._left + packet._got == packet._total_size):
-                _logger.debug("File %s done", self._object)
+                _logger.debug("File %r done", self._object)
 
                 self._object.state = File.State.DONE
                 
@@ -182,7 +182,7 @@ class Manager:
             # Request next part
             else:
             
-                _logger.debug("File %s continue from %d", self._object, packet._got + packet._left)
+                _logger.debug("File %r continue from %d", self._object, packet._got + packet._left)
                 # Start next request at index
                 next = list(map(ord, struct.pack("<I", packet._got + packet._left)))
                 self._ant.send_burst_transfer(0x00, [\

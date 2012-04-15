@@ -33,6 +33,11 @@ import time
 
 import logging
 
+_logger = logging.getLogger("garmin.ant.base")
+
+def _format_list(l):
+    return "[" + " ".join(map(lambda a: str.format("{:02x}", a), l)) + "]"
+
 class Message:
 
     class ID:
@@ -128,15 +133,18 @@ class Message:
 
 
     def __init__(self, mId, data):
-    
-        self._logger = logging.getLogger("garmin.ant.base")
-    
         self._sync     = 0xa4
         self._length   = len(data)
         self._id       = mId
         self._data     = data
-        self._checksum = self._sync ^ self._length ^ self._id  ^ \
-                         reduce(lambda x, y: x ^ y, data)
+        self._checksum = (self._sync ^ self._length ^ self._id
+                          ^ reduce(lambda x, y: x ^ y, data))
+
+    def __repr__(self):
+        return str.format(
+                   "<ant.base.Message {:02x}:{} (s:{:02x}, l:{}, c:{:02x})>",
+                   self._id, _format_list(self._data), self._sync,
+                   self._length, self._checksum)
 
     def get(self):
         return array.array('B', [self._sync, self._length, self._id] + self._data + [self._checksum])
@@ -182,7 +190,7 @@ class Message:
         elif message._id == Message.ID.BROADCAST_DATA:
             print "Broadcast data"
             print "\tChannel number:", self._data[0]
-            print "\tData:          ", reduce(lambda x, y: x + str.format("{:02x} ", y), self._data[1:9], "")
+            print "\tData:          ", _format_list(self._data[1:9])
             if length != 9:
                 print "Extended flags:", self._data[10]
                 print "Extended data bytes:", self._data[11:]
@@ -252,23 +260,21 @@ class Ant(threading.Thread):
 
         threading.Thread.__init__(self)
 
-        self._logger = logging.getLogger("garmin.ant.base")
-
         # Find USB device
-        self._logger.debug("USB Find device, vendor %#04x, product %#04x", idVendor, idProduct)
+        _logger.debug("USB Find device, vendor %#04x, product %#04x", idVendor, idProduct)
         dev = usb.core.find(idVendor=idVendor, idProduct=idProduct)
 
         # was it found?
         if dev is None:
             raise ValueError('Device not found')
 
-        self._logger.debug("USB Config values")
+        _logger.debug("USB Config values:")
         for cfg in dev:
-            self._logger.debug("%s", cfg.bConfigurationValue)
+            _logger.debug(" Config %s", cfg.bConfigurationValue)
             for intf in cfg:
-                self._logger.debug("\t%s, %s", str(intf.bInterfaceNumber), str(intf.bAlternateSetting))
+                _logger.debug("  Interface %s, Alt %s", str(intf.bInterfaceNumber), str(intf.bAlternateSetting))
                 for ep in intf:
-                    self._logger.debug("\t\t%s", str(ep.bEndpointAddress))
+                    _logger.debug("   Endpoint %s", str(ep.bEndpointAddress))
 
         # set the active configuration. With no arguments, the first
         # configuration will be the active one
@@ -294,7 +300,7 @@ class Ant(threading.Thread):
                 usb.util.ENDPOINT_OUT
         )
 
-        self._logger.debug("UBS Endpoint out: %s, %s", self._out, self._out.bEndpointAddress)
+        _logger.debug("UBS Endpoint out: %s, %s", self._out, self._out.bEndpointAddress)
 
         self._in = usb.util.find_descriptor(
             intf,
@@ -305,7 +311,7 @@ class Ant(threading.Thread):
                 usb.util.ENDPOINT_IN
         )
 
-        self._logger.debug("UBS Endpoint in: %s, %s", self._in, self._in.bEndpointAddress)
+        _logger.debug("UBS Endpoint in: %s, %s", self._in, self._in.bEndpointAddress)
 
         assert self._out is not None and self._in is not None
 
@@ -318,11 +324,10 @@ class Ant(threading.Thread):
 
     def run(self):
 
-        self._logger.debug("Ant runner started")
+        _logger.debug("Ant runner started")
 
         while self._running:
             try:
-                self._logger.debug("Reading message...")
                 message = self.read_message()
 
                 # TODO: EVENT_RX_ACKNOWLEDGED (EVENT_RX_FLAG_ACKNOWLEDGED, EVENT_RX_EXT_ACKNOWLEDGED) for acknowledged data, EVENT_RX_BROADCAST (EVENT_RX_FLAG_BROADCAST, EVENT_RX_EXT_BROADCAST) for broadcast data, and EVENT_RX_BURST (EVENT_RX_FLAG_BURST, VENT_RX_EXT_BURST)
@@ -339,7 +344,7 @@ class Ant(threading.Thread):
                     Message.ID.RESPONSE_CAPABILITIES, \
                     Message.ID.RESPONSE_SERIAL_NUMBER]:
 
-                    self._logger.debug("Response, %#02x", message._id)
+                    _logger.debug("Got response, %r", message)
                     self.response_function(message)
 
                 # Channel event
@@ -349,42 +354,42 @@ class Ant(threading.Thread):
                     Message.ID.BURST_TRANSFER_DATA, \
                     Message.ID.RESPONSE_CHANNEL]:
 
-                    self._logger.debug("Channel event, %#02x", message._id)
+                    _logger.debug("Got channel event, %r", message)
                     self.channel_event_function(message)
                 else:
-                    self._logger.warning("Unknown message, %r, %#02x", message, message._id)
+                    _logger.warning("Got unknown message, %r", message)
 
                 # Send messages in queue, on indicated time slot
                 if message._id == Message.ID.BROADCAST_DATA:
-                    self._logger.debug("Got broadcast data, examine queue")
+                    _logger.debug("Got broadcast data, examine queue to see if we should send anything back")
                     # TODO send queued messages
                     if self._message_queue_cond.acquire(blocking=False):
                         while len(self._message_queue) > 0:
                             m = self._message_queue.popleft()
                             self.write_message(m)
-                            self._logger.debug("Got broadcast data, sen message from queue, %#02x, %r", m._id, m._data)
+                            _logger.debug(" - sent message from queue, %r", m)
                             
                             if(m._id != Message.ID.BURST_TRANSFER_DATA or \
                                m._data[0] & 0b10000000):# or m._data[0] == 0):
                                 break
                         else:
-                            self._logger.debug("Got broadcast data, but no mesasges in queue")
+                            _logger.debug(" - no messages in queue")
                         self._message_queue_cond.release()
 
 
             except usb.USBError as e:
-                self._logger.warning("%s, %r", type(e), e.args)
+                _logger.warning("%s, %r", type(e), e.args)
 
     def write_message_timeslot(self, message):
         with self._message_queue_cond:
             self._message_queue.append(message)
 
     def write_message(self, message):
-    
         data = message.get()
         self._out.write(data + array.array('B', [0x00, 0x00]))
-        self._logger.debug("Sent data: %s", reduce(lambda x, y: x + str.format("{:02x} ", y), data, ""))
         #time.sleep(0.05)
+        _logger.debug("Write data: %s", _format_list(data))
+
 
     def read_message(self):
         # If we have a message in buffer alreadroom for a message, and
@@ -396,8 +401,8 @@ class Ant(threading.Thread):
         else:
             data = self._in.read(4096)
             self._buffer.extend(data)
-            self._logger.debug("Got data: %s", reduce(lambda x, y: x + str.format("{:02x} ", y), data, ""))
-            self._logger.debug("Now have: %s", reduce(lambda x, y: x + str.format("{:02x} ", y), self._buffer, ""))
+            _logger.debug("Read data: %s (now have %s in buffer)",
+                          _format_list(data), _format_list(self._buffer))
             return self.read_message()
 
         #data = self._in.read(4096)
@@ -455,8 +460,8 @@ class Ant(threading.Thread):
         self.write_message_timeslot(message)
 
     def send_burst_transfer(self, channel, data):
-        self._logger.debug("Send burst transfer, chan %s, data %s", channel, data)
         #with self._message_queue_cond:
+        _logger.debug("Send burst transfer, chan %s, data %s", channel, data)
         for i in range(len(data)):
 
             sequence = i % 4

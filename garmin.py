@@ -44,6 +44,8 @@ ID_PRODUCT = 0x1008
 
 PRODUCT_NAME = "garmin-extractor"
 
+_logger = logging.getLogger("garmin")
+
 class Garmin(EasyAnt):
 
     class State:
@@ -61,8 +63,6 @@ class Garmin(EasyAnt):
         EasyAnt.__init__(self, ID_VENDOR, ID_PRODUCT)
         #self.start()
         
-        self._logger = logging.getLogger("garmin")
-        
         self.state = Garmin.State.INITIALIZING
         
         self.myid     = [0xff, 0xff, 0xff, 0xff]
@@ -75,6 +75,7 @@ class Garmin(EasyAnt):
         self.fetch    = []
         self.fetchdat = array.array("B")
         
+        _logger.debug("Creating directories")
         self.create_directories()
         self.fs       = ant.fs.Manager(self)
 
@@ -94,8 +95,8 @@ class Garmin(EasyAnt):
             self.myid = d[0:4]
             self.auth = d[4:12]
             self.pair = False
-            self._logger.debug("loaded authfile:")
-            self._logger.debug("%s, %s, %s, %s", d, self.myid, self.auth, self.pair)
+            _logger.debug("loaded authfile:")
+            _logger.debug("%s, %s, %s, %s", d, self.myid, self.auth, self.pair)
 
     def write_authfile(self, unitid):
     
@@ -106,8 +107,8 @@ class Garmin(EasyAnt):
         with open(os.path.join(path, "authfile"), 'wb') as f:
             f.write("".join(map(chr, self.myid)))
             f.write("".join(map(chr, self.auth)))
-            self._logger.debug("wrote authfile:")
-            self._logger.debug("%s, %s, %s", self.myid, self.auth, self.pair)
+            _logger.debug("wrote authfile:")
+            _logger.debug("%s, %s, %s", self.myid, self.auth, self.pair)
 
     def init(self):
         print "Request basic information..."
@@ -178,7 +179,7 @@ class Garmin(EasyAnt):
         #print "burst data", self.state, data
         
         if self.state == Garmin.State.REQUESTID:
-            self._logger.debug("%d, %d, %s", len(data), len(data[11:]), data[11:])
+            _logger.debug("%d, %d, %s", len(data), len(data[11:]), data[11:])
             (strlen, unitid, name) = struct.unpack("<BI14s", data[11:-2])
             print "String length: ", strlen
             print "Unit ID:       ", unitid
@@ -216,13 +217,13 @@ class Garmin(EasyAnt):
                 self.state = Garmin.State.AUTHENTICATING
 
         elif self.state == Garmin.State.PAIRING:
-            self._logger.debug("pairing is done")
+            _logger.debug("pairing is done")
             self.auth = data[16:24]
             self.write_authfile(self.unitid)
             self.state = Garmin.State.FETCH
         
         elif self.state == Garmin.State.AUTHENTICATING:
-            self._logger.debug("auth is done")
+            _logger.debug("auth is done")
             self.state = Garmin.State.FETCH
         
         elif self.state == Garmin.State.FS:
@@ -238,21 +239,21 @@ class Garmin(EasyAnt):
         #print "broadcast data", self.state, data
         
         if self.last != data:
-            self._logger.debug("new state")
-            self._logger.debug(data)
+            _logger.debug("new state")
+            _logger.debug(data)
         #else:
         #    return
         
         if self.state == Garmin.State.SEARCHING:
-            self._logger.debug("found device")
+            _logger.debug("found device")
             can_pair = bool(data[1] & 0b00001000)
             new_data = bool(data[1] & 0b00100000)
-            self._logger.debug("pair %s, data %s", can_pair, new_data)
+            _logger.debug("pair %s, data %s", can_pair, new_data)
 
             self.request_message(0x00, Message.ID.RESPONSE_CHANNEL_ID)
             self.send_acknowledged_data(0x00, [0x44, 0x02, self.myfreq, 0x04] + self.myid)
             
-            self._logger.debug("\tNew period, search, rf req")
+            _logger.debug("\tNew period, search, rf req")
             # New period, search timeout
             self.set_channel_period(0x00, [0x00, 0x10])
             self.set_channel_search_timeout(0x00, 0x03)
@@ -261,7 +262,7 @@ class Garmin(EasyAnt):
             self.state = Garmin.State.NEWFREQUENCY
         
         elif self.state == Garmin.State.NEWFREQUENCY:
-            self._logger.debug("talking on new frequency")
+            _logger.debug("talking on new frequency")
             self.send_acknowledged_data(0x00, [0x44, 0x04, 0x01, 0x00] + self.myid)
             
             self.state = Garmin.State.REQUESTID
@@ -307,7 +308,7 @@ def main():
     logger.setLevel(logging.DEBUG)
     handler = logging.FileHandler("garmin.log", "w")
     #handler = logging.StreamHandler()
-    handler.setFormatter(logging.Formatter(fmt='%(asctime)s - %(name)-12s: %(levelname)-8s - %(message)s'))
+    handler.setFormatter(logging.Formatter(fmt='%(asctime)s  %(name)-15s  %(levelname)-8s  %(message)s'))
     logger.addHandler(handler)
 
     g = Garmin()
