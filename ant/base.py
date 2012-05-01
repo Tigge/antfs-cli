@@ -36,7 +36,7 @@ import logging
 _logger = logging.getLogger("garmin.ant.base")
 
 def _format_list(l):
-    return "[" + " ".join(map(lambda a: str.format("{:02x}", a), l)) + "]"
+    return "[" + " ".join(map(lambda a: str.format("{0:02x}", a), l)) + "]"
 
 class Message:
 
@@ -142,7 +142,7 @@ class Message:
 
     def __repr__(self):
         return str.format(
-                   "<ant.base.Message {:02x}:{} (s:{:02x}, l:{}, c:{:02x})>",
+                   "<ant.base.Message {0:02x}:{1} (s:{2:02x}, l:{3}, c:{4:02x})>",
                    self._id, _format_list(self._data), self._sync,
                    self._length, self._checksum)
 
@@ -199,9 +199,9 @@ class Message:
         elif message._id == Message.ID.RESPONSE_CHANNEL_STATUS:
             print "Channel Status"
             print "\tChannel number:", self._data[0]
-            print "\tChannel type:  ", str.format("{:#04x}", (self._data[1] & 0b11110000) >> 3)
-            print "\tNetwork number:", str.format("{:d}   ", (self._data[1] & 0b00001100) >> 1)
-            print "\tChannel state: ", str.format("{:d}   ", (self._data[1] & 0b00000011))
+            print "\tChannel type:  ", str.format("{0:#04x}", (self._data[1] & 0b11110000) >> 3)
+            print "\tNetwork number:", str.format("{0:d}   ", (self._data[1] & 0b00001100) >> 1)
+            print "\tChannel state: ", str.format("{0:d}   ", (self._data[1] & 0b00000011))
             if (self._data[1] & 0b00000011) == 0:
                 print "\t\tUn-assigned"
             elif (self._data[1] & 0b00000011) == 1:
@@ -223,15 +223,15 @@ class Message:
             print "Capabilites"
             print "\tMax Channels:", self._data[0]
             print "\tMax Networks:", self._data[1]
-            print "\tStandard Opt:", str.format("{:#010b}", int(self._data[2]))
-            print "\tAdvanced Opt:", str.format("{:#010b}", int(self._data[3]))
-            print "\tAdvanced2Opt:", str.format("{:#010b}", int(self._data[4]))
+            print "\tStandard Opt:", str.format("{0:#010b}", int(self._data[2]))
+            print "\tAdvanced Opt:", str.format("{0:#010b}", int(self._data[3]))
+            print "\tAdvanced2Opt:", str.format("{0:#010b}", int(self._data[4]))
         elif message._id == Message.ID.RESPONSE_SERIAL_NUMBER:
             print "Serial Number"
             print "\t", struct.unpack("<I", self._data)[0]
         elif message._id == Message.ID.STARTUP_MESSAGE:
             print "Startup Message"
-            print "\tBits:", str.format("{:#010b}", int(self._data[0]))
+            print "\tBits:", str.format("{0:#010b}", int(self._data[0]))
         elif message._id == Message.ID.SERIAL_ERROR_MESSAGE:
             print "Serial Error Message"
             errno = self.self._data[0]
@@ -247,10 +247,10 @@ class Message:
         elif message._id == Message.ID.RESPONSE_CHANNEL:
             print "Channel response"
             print "\tChannel number:", self._data[0]
-            print "\tMessage ID:    ", str.format("{:#04x}", self._data[1])
+            print "\tMessage ID:    ", str.format("{0:#04x}", self._data[1])
             print "\tMessage Code:  ", self._data[2]
         else:
-            print "Unknown message", str.format("{:#x}", int(self._id)), self._data
+            print "Unknown message", str.format("{0:#x}", int(self._id)), self._data
 
 
 

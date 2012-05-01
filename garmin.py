@@ -140,7 +140,7 @@ class Garmin(EasyAnt):
 
     def get_filename(self, f):
         file_date_time = f.get_date().strftime("%Y-%m-%d_%H-%M-%S")
-        return str.format("{}-{:02x}-{}.fit", file_date_time,
+        return str.format("{0}-{1:02x}-{2}.fit", file_date_time,
                           f.get_type(), f.get_size())
 
     def get_filepath(self, f):
