@@ -165,6 +165,10 @@ class EasyAnt(Ant):
         Ant.set_network_key(self, network, key)
         return self.wait_for_response(Message.ID.RESPONSE_CHANNEL)
 
+    def set_search_waveform(self, channel, waveform):
+        Ant.set_search_waveform(self, channel, waveform)
+        return self.wait_for_response(Message.ID.RESPONSE_CHANNEL)
+
     def send_acknowledged_data(self, channel, broadcastData):
         _logger.debug("send acknowledged data %s", channel)
         Ant.send_acknowledged_data(self, channel, broadcastData)

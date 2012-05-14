@@ -126,8 +126,7 @@ class Garmin(EasyAnt):
         self.set_channel_period(0x00, [0x00, 0x10])
         self.set_channel_search_timeout(0x00, 0xff)
         self.set_channel_rf_freq(0x00, 0x32)
-        # TODO: 0x49 = Channel waveform? 
-        #self.xxxxx("\xa4\x03\x49\x00\x53\x00\xbd")
+        self.set_search_waveform(0x00, [0x53, 0x00])
         self.set_channel_id(0x00, [0x00, 0x00], 0x01, 0x00)
         
         print "Open channel..."
