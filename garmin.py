@@ -72,9 +72,6 @@ class Garmin(EasyAnt):
         
         self.last     = array.array("B")
         
-        self.fetch    = []
-        self.fetchdat = array.array("B")
-        
         _logger.debug("Creating directories")
         self.create_directories()
         self.fs       = ant.fs.Manager(self)
@@ -143,7 +140,8 @@ class Garmin(EasyAnt):
                           f.get_type(), f.get_size())
 
     def get_filepath(self, f):
-        return os.path.join(self.config_dir, self.get_filename(f))
+        return os.path.join(self.config_dir, str(self.unitid), 
+                self.get_filename(f))
 
     def download_index_done(self, index):
         self._index = index
@@ -266,7 +264,7 @@ class Garmin(EasyAnt):
             
             self.state = Garmin.State.REQUESTID
         
-        elif self.state == Garmin.State.FETCH and len(self.fetch) == 0:
+        elif self.state == Garmin.State.FETCH:
             self.send_burst_transfer(0x00, [\
                 [0x44, 0x0a, 0xfe, 0xff, 0x10, 0x00, 0x00, 0x00], \
                 [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]])
