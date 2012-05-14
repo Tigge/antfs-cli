@@ -144,11 +144,12 @@ Watch -> Host burst: The clock answers with a burst message:
     
     Row 1:   Same as last/current broadcast
     
-    Row 2:   Byte 0-2: Unknown, Byte 3: Probably name string length
+    Row 2:   Byte 0-2: Unknown, Byte 3: Name string length (includes one null
+                                        char at the end of the string)
              Byte 4-7: Garmin Unit ID - uint32, little-endian
              
     Row 3-4: Name string: "Garmin Forerunner 610", remaining space is
-             zero padded.
+             zero padded to next even octet. Unknown character encoding.
     
 
 Here we can either pair with device or send old pair info - can only pair if 

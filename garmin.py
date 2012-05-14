@@ -180,7 +180,8 @@ class Garmin(EasyAnt):
         
         if self.state == Garmin.State.REQUESTID:
             _logger.debug("%d, %d, %s", len(data), len(data[11:]), data[11:])
-            (strlen, unitid, name) = struct.unpack("<BI14s", data[11:-2])
+            (strlen, unitid) = struct.unpack("<11xBI", data[:16])
+            name             = data[16:16 + strlen].tostring()
             print "String length: ", strlen
             print "Unit ID:       ", unitid
             print "Product name:  ", name
