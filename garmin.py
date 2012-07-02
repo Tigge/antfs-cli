@@ -1,3 +1,5 @@
+#!/usr/bin/python
+#
 # Ant
 #
 # Copyright (c) 2012, Gustav Tiger <gustav@tiger.name>
@@ -25,6 +27,7 @@ from ant.easy import EasyAnt
 import ant.fs
 
 import utilities
+import scripting
 
 import logging
 import threading
@@ -75,13 +78,17 @@ class Garmin(EasyAnt):
         _logger.debug("Creating directories")
         self.create_directories()
         self.fs       = ant.fs.Manager(self)
+        
+        self.scriptr  = scripting.Runner(self.script_dir)
 
     def create_directories(self):
         xdg = utilities.XDG(PRODUCT_NAME)
         self.config_dir = xdg.get_config_dir()
-        
+        self.script_dir = os.path.join(self.config_dir, "scripts")
         if not os.path.exists(self.config_dir):
             os.makedirs(self.config_dir)
+        if not os.path.exists(self.script_dir):
+            os.makedirs(self.script_dir)
 
     def read_authfile(self, unitid):
 
@@ -100,6 +107,8 @@ class Garmin(EasyAnt):
         path = os.path.join(self.config_dir, str(unitid))
         if not os.path.exists(path):
             os.mkdir(path)
+        if not os.path.exists(os.path.join(path, "activities")):
+            os.mkdir(os.path.join(path, "activities"))
         
         with open(os.path.join(path, "authfile"), 'wb') as f:
             f.write("".join(map(chr, self.myid)))
@@ -141,7 +150,7 @@ class Garmin(EasyAnt):
 
     def get_filepath(self, f):
         return os.path.join(self.config_dir, str(self.unitid), 
-                self.get_filename(f))
+               "activities", self.get_filename(f))
 
     def download_index_done(self, index):
         self._index = index
@@ -170,6 +179,9 @@ class Garmin(EasyAnt):
         with open(self.get_filepath(f), "w") as fd:
             f.get_data().tofile(fd)
         print "- done"
+        
+        self.scriptr.run_download(self.get_filepath(f))
+        
         self.download_file_next()
 
     def on_burst_data(self, data):
