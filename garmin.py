@@ -1,3 +1,5 @@
+#!/usr/bin/python
+#
 # Ant
 #
 # Copyright (c) 2012, Gustav Tiger <gustav@tiger.name>
@@ -25,6 +27,7 @@ from ant.easy import EasyAnt
 import ant.fs
 
 import utilities
+import scripting
 
 import logging
 import threading
@@ -72,19 +75,20 @@ class Garmin(EasyAnt):
         
         self.last     = array.array("B")
         
-        self.fetch    = []
-        self.fetchdat = array.array("B")
-        
         _logger.debug("Creating directories")
         self.create_directories()
         self.fs       = ant.fs.Manager(self)
+        
+        self.scriptr  = scripting.Runner(self.script_dir)
 
     def create_directories(self):
         xdg = utilities.XDG(PRODUCT_NAME)
         self.config_dir = xdg.get_config_dir()
-        
+        self.script_dir = os.path.join(self.config_dir, "scripts")
         if not os.path.exists(self.config_dir):
             os.makedirs(self.config_dir)
+        if not os.path.exists(self.script_dir):
+            os.makedirs(self.script_dir)
 
     def read_authfile(self, unitid):
 
@@ -103,6 +107,8 @@ class Garmin(EasyAnt):
         path = os.path.join(self.config_dir, str(unitid))
         if not os.path.exists(path):
             os.mkdir(path)
+        if not os.path.exists(os.path.join(path, "activities")):
+            os.mkdir(os.path.join(path, "activities"))
         
         with open(os.path.join(path, "authfile"), 'wb') as f:
             f.write("".join(map(chr, self.myid)))
@@ -126,8 +132,7 @@ class Garmin(EasyAnt):
         self.set_channel_period(0x00, [0x00, 0x10])
         self.set_channel_search_timeout(0x00, 0xff)
         self.set_channel_rf_freq(0x00, 0x32)
-        # TODO: 0x49 = Channel waveform? 
-        #self.xxxxx("\xa4\x03\x49\x00\x53\x00\xbd")
+        self.set_search_waveform(0x00, [0x53, 0x00])
         self.set_channel_id(0x00, [0x00, 0x00], 0x01, 0x00)
         
         print "Open channel..."
@@ -144,7 +149,8 @@ class Garmin(EasyAnt):
                           f.get_type(), f.get_size())
 
     def get_filepath(self, f):
-        return os.path.join(self.config_dir, self.get_filename(f))
+        return os.path.join(self.config_dir, str(self.unitid), 
+               "activities", self.get_filename(f))
 
     def download_index_done(self, index):
         self._index = index
@@ -173,6 +179,9 @@ class Garmin(EasyAnt):
         with open(self.get_filepath(f), "w") as fd:
             f.get_data().tofile(fd)
         print "- done"
+        
+        self.scriptr.run_download(self.get_filepath(f))
+        
         self.download_file_next()
 
     def on_burst_data(self, data):
@@ -180,7 +189,8 @@ class Garmin(EasyAnt):
         
         if self.state == Garmin.State.REQUESTID:
             _logger.debug("%d, %d, %s", len(data), len(data[11:]), data[11:])
-            (strlen, unitid, name) = struct.unpack("<BI14s", data[11:-2])
+            (strlen, unitid) = struct.unpack("<11xBI", data[:16])
+            name             = data[16:16 + strlen].tostring()
             print "String length: ", strlen
             print "Unit ID:       ", unitid
             print "Product name:  ", name
@@ -266,7 +276,7 @@ class Garmin(EasyAnt):
             
             self.state = Garmin.State.REQUESTID
         
-        elif self.state == Garmin.State.FETCH and len(self.fetch) == 0:
+        elif self.state == Garmin.State.FETCH:
             self.send_burst_transfer(0x00, [\
                 [0x44, 0x0a, 0xfe, 0xff, 0x10, 0x00, 0x00, 0x00], \
                 [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]])

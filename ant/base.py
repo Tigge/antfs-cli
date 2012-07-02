@@ -52,6 +52,7 @@ class Message:
         SET_CHANNEL_RF_FREQ                = 0x45
         SET_NETWORK_KEY                    = 0x46
         SET_TRANSMIT_POWER                 = 0x47
+        SET_SEARCH_WAVEFORM                = 0x49 # XXX: Not in official docs
         ADD_CHANNEL_ID                     = 0x59
         CONFIG_LIST                        = 0x5A
         SET_CHANNEL_TX_POWER               = 0x60
@@ -441,6 +442,13 @@ class Ant(threading.Thread):
 
     def set_network_key(self, network, key):
         message = Message(Message.ID.SET_NETWORK_KEY, [network] + key)
+        self.write_message(message)
+
+    # This function is a bit of a mystery. It is mentioned in libgant,
+    # http://sportwatcher.googlecode.com/svn/trunk/libgant/gant.h and is
+    # also sent from the official ant deamon on windows.
+    def set_search_waveform(self, channel, waveform):
+        message = Message(Message.ID.SET_SEARCH_WAVEFORM, [channel] + waveform)
         self.write_message(message)
 
     def reset_system(self):
