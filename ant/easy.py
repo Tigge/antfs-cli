@@ -97,15 +97,16 @@ class EasyAnt(Ant):
             #print "ge - not acquired"
             return None
 
-    def _wait_for_message(self, match, queue, condition):
+    def _wait_for_message(self, match, process, queue, condition):
         """
         Wait for a specific message in the *queue* guarded by the *condition*
-        matching the function *match* (which is a function that takes a 
-        ant.Message as a parameter and returns a boolean.
+        matching the function *match* (which is a function that takes a
+        message as a parameter and returns a boolean). The messages is
+        processed by the *process* function before returning it.
         """
         _logger.debug("wait for message matching %r", match)
         condition.acquire()
-        while True:
+        for _ in range(10):
             _logger.debug("looking for matching message in %r", queue)
             #_logger.debug("wait for response to %#02x, checking", mId)
             for message in queue:
@@ -113,66 +114,101 @@ class EasyAnt(Ant):
                     _logger.debug(" - response found %r", message)
                     queue.remove(message)
                     condition.release()
-                    return message
+                    return process(message)
             _logger.debug(" - could not find response matching %r", match)
-            condition.wait()
+            condition.wait(1.0)
+        raise Exception("Timedout while waiting for message");
 
-    def wait_for_event(self, code):
+    def wait_for_event(self, ok_codes, error_codes):
         def match(message):
-            return message._data[2] == code
-        return self._wait_for_message(match, self._events, self._event_cond)
-	
-    def wait_for_response(self, mId, extra = None):
+            return (message._id == Message.ID.RESPONSE_CHANNEL
+                   and (message._data[2] in ok_codes or
+                   message._data[2] in error_codes))
+        def process(message):
+            if message._data[2] in ok_codes:
+                return message
+            else:
+                raise Exception("Responded with error " + message._data[2])
+        return self._wait_for_message(match, process, self._events,
+               self._event_cond)
+
+
+    def wait_for_response(self, id):
+        """
+        Waits for a response to a specific message sent by the channel response
+        message, 0x40. It's exepcted to return RESPONSE_NO_ERROR, 0x00.
+        """
         def match(message):
-            return message._id == mId and (extra == None or message._data[2] == extra)
-        return self._wait_for_message(match, self._responses, self._responses_cond)
+            return (message._id == Message.ID.RESPONSE_CHANNEL and
+                   message._data[1] == id)
+
+        def process(message):
+            if message._data[2] == Message.Code.RESPONSE_NO_ERROR:
+                return message
+            else:
+                raise Exception("Reseponded with error " + message._data[2])
+        return self._wait_for_message(match, process, self._responses,
+               self._responses_cond)
+
+    def wait_for_special(self, id):
+        """
+        Waits for special responsens to messages such as Channel ID, ANT
+        Version, etc. This does not throw any exceptions, besides timeouts.
+        """
+        def match(message):
+            return message._id == id
+        def process(message):
+            return message
+        return self._wait_for_message(match, process, self._responses,
+               self._responses_cond)
 
     def request_message(self, channel, messageId):
         _logger.debug("requesting message %#02x", messageId)
         Ant.request_message(self, channel, messageId)
         _logger.debug("done requesting message %#02x", messageId)
-        return self.wait_for_response(messageId)
+        return self.wait_for_special(messageId)
 
     def reset_system(self):
         Ant.reset_system(self)
-        return self.wait_for_response(Message.ID.STARTUP_MESSAGE)
+        return self.wait_for_special(Message.ID.STARTUP_MESSAGE)
 
     def assign_channel(self, channel, channelType, networkNumber):
         Ant.assign_channel(self, channel, channelType, networkNumber)
-        return self.wait_for_response(Message.ID.RESPONSE_CHANNEL)
+        return self.wait_for_response(Message.ID.ASSIGN_CHANNEL)
     
     def open_channel(self, channel):
         Ant.open_channel(self, channel)
-        return self.wait_for_response(Message.ID.RESPONSE_CHANNEL)
+        return self.wait_for_response(Message.ID.OPEN_CHANNEL)
     
     def set_channel_id(self, channel, deviceNum, deviceType, transmissionType):
         Ant.set_channel_id(self, channel, deviceNum, deviceType, transmissionType)
-        return self.wait_for_response(Message.ID.RESPONSE_CHANNEL)
+        return self.wait_for_response(Message.ID.SET_CHANNEL_ID)
     
     def set_channel_period(self, channel, messagePeriod):
         Ant.set_channel_period(self, channel, messagePeriod)
-        return self.wait_for_response(Message.ID.RESPONSE_CHANNEL)
+        return self.wait_for_response(Message.ID.SET_CHANNEL_PERIOD)
     
     def set_channel_search_timeout(self, channel, timeout):
         Ant.set_channel_search_timeout(self, channel, timeout)
-        return self.wait_for_response(Message.ID.RESPONSE_CHANNEL)
+        return self.wait_for_response(Message.ID.SET_CHANNEL_SEARCH_TIMEOUT)
     
     def set_channel_rf_freq(self, channel, rfFreq):
         Ant.set_channel_rf_freq(self, channel, rfFreq)
-        return self.wait_for_response(Message.ID.RESPONSE_CHANNEL)
+        return self.wait_for_response(Message.ID.SET_CHANNEL_RF_FREQ)
     
     def set_network_key(self, network, key):
         Ant.set_network_key(self, network, key)
-        return self.wait_for_response(Message.ID.RESPONSE_CHANNEL)
+        return self.wait_for_response(Message.ID.SET_NETWORK_KEY)
 
     def set_search_waveform(self, channel, waveform):
         Ant.set_search_waveform(self, channel, waveform)
-        return self.wait_for_response(Message.ID.RESPONSE_CHANNEL)
+        return self.wait_for_response(Message.ID.SET_SEARCH_WAVEFORM)
 
     def send_acknowledged_data(self, channel, broadcastData):
         _logger.debug("send acknowledged data %s", channel)
         Ant.send_acknowledged_data(self, channel, broadcastData)
-        x = self.wait_for_event(Message.Code.EVENT_TRANSFER_TX_COMPLETED)
+        x = self.wait_for_event([Message.Code.EVENT_TRANSFER_TX_COMPLETED],
+                                [Message.Code.EVENT_TRANSFER_TX_FAILED])
         _logger.debug("done sending acknowledged data %s", channel)
         return x
 
@@ -184,11 +220,12 @@ class EasyAnt(Ant):
     def send_burst_transfer(self, channel, data):
         _logger.debug("send burst transfer %s", channel)
         Ant.send_burst_transfer(self, channel, data)
-        self.wait_for_event(Message.Code.EVENT_TRANSFER_TX_START)
-        x = self.wait_for_event(Message.Code.EVENT_TRANSFER_TX_COMPLETED)
+        self.wait_for_event([Message.Code.EVENT_TRANSFER_TX_START],
+                            [Message.Code.EVENT_TRANSFER_TX_FAILED])
+        x = self.wait_for_event([Message.Code.EVENT_TRANSFER_TX_COMPLETED],
+                                [Message.Code.EVENT_TRANSFER_TX_FAILED])
         _logger.debug("done sending burst transfer %s", channel)
         return x
-        
 
     def gofix(self):
         while True:
