@@ -128,7 +128,7 @@ class EasyAnt(Ant):
             if message._data[2] in ok_codes:
                 return message
             else:
-                raise Exception("Responded with error " + message._data[2])
+                raise Exception("Responded with error " + str(message._data[2]))
         return self._wait_for_message(match, process, self._events,
                self._event_cond)
 
@@ -146,7 +146,7 @@ class EasyAnt(Ant):
             if message._data[2] == Message.Code.RESPONSE_NO_ERROR:
                 return message
             else:
-                raise Exception("Reseponded with error " + message._data[2])
+                raise Exception("Reseponded with error " + str(message._data[2]))
         return self._wait_for_message(match, process, self._responses,
                self._responses_cond)
 
