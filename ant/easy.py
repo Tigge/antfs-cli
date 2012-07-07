@@ -39,48 +39,18 @@ class EasyAnt(Ant):
         self._event_cond     = threading.Condition()
         self._events         = collections.deque()
         
-        self.burst_data      = array.array('B', [])
-        
         self.start()
 
-    def response_function(self, message):
+    def response_function(self, channel, event, data):
         self._responses_cond.acquire()
-        self._responses.append(message)
+        self._responses.append((channel, event, data))
         self._responses_cond.notify()
         self._responses_cond.release()
     
-    def channel_event_function(self, message):
-    
-        if message._id == Message.ID.BURST_TRANSFER_DATA:
-
-            sequence = message._data[0] >> 5
-            channel  = message._data[0] & 0b00011111
-            data     = message._data[1:]
-            
-            self.burst_data.extend(data)
-            
-            # Last sequence
-            if sequence >= 4:
-                _logger.debug("Burst data: %s", self.burst_data)
-                _logger.debug("            %s", reduce(lambda x, y: x + chr(y), self.burst_data, ""))
-                #phase += 1
-                #self.on_burst_data(burst_data)
-                message._data = self.burst_data
-                # Reset
-                self.burst_data = array.array('B', [])
-            else:
-                #print "sequence", sequence, message._data[0]
-                #assert sequence == burst_seq + 1 or (sequence == 0 and burst_seq & 0b100) or (sequence == 1 and burst_seq == 3)
-                return
-                
-            #burst_seq  = sequence
-    
-        #elif message._id == Message.ID.BROADCAST_DATA:
-            #self.on_broadcast_data(message._data[1:])
-        
-        _logger.debug("channel event function %r", message)
+    def channel_event_function(self, channel, event, data):
+        #_logger.debug("channel event function %r", message)
         self._event_cond.acquire()
-        self._events.append(message)
+        self._events.append((channel, event, data))
         self._event_cond.notify()
         self._event_cond.release()
 
@@ -120,33 +90,28 @@ class EasyAnt(Ant):
         raise Exception("Timedout while waiting for message");
 
     def wait_for_event(self, ok_codes, error_codes):
-        def match(message):
-            return (message._id == Message.ID.RESPONSE_CHANNEL
-                   and (message._data[2] in ok_codes or
-                   message._data[2] in error_codes))
-        def process(message):
-            if message._data[2] in ok_codes:
-                return message
+        def match((channel, event, data)):
+            return data[0] in ok_codes or data[0] in error_codes
+        def process((channel, event, data)):
+            if data[0] in ok_codes:
+                return (channel, event, data)
             else:
-                raise Exception("Responded with error " + message._data[2])
+                raise Exception("Responded with error " + str(data[0]))
         return self._wait_for_message(match, process, self._events,
                self._event_cond)
-
 
     def wait_for_response(self, id):
         """
         Waits for a response to a specific message sent by the channel response
         message, 0x40. It's exepcted to return RESPONSE_NO_ERROR, 0x00.
         """
-        def match(message):
-            return (message._id == Message.ID.RESPONSE_CHANNEL and
-                   message._data[1] == id)
-
-        def process(message):
-            if message._data[2] == Message.Code.RESPONSE_NO_ERROR:
-                return message
+        def match((channel, event, data)):
+            return event == id
+        def process((channel, event, data)):
+            if data[0] == Message.Code.RESPONSE_NO_ERROR:
+                return (channel, event, data)
             else:
-                raise Exception("Reseponded with error " + message._data[2])
+                raise Exception("Reseponded with error " + str(data[0]))
         return self._wait_for_message(match, process, self._responses,
                self._responses_cond)
 
@@ -155,10 +120,10 @@ class EasyAnt(Ant):
         Waits for special responsens to messages such as Channel ID, ANT
         Version, etc. This does not throw any exceptions, besides timeouts.
         """
-        def match(message):
-            return message._id == id
-        def process(message):
-            return message
+        def match((channel, event, data)):
+            return event == id
+        def process(event):
+            return event
         return self._wait_for_message(match, process, self._responses,
                self._responses_cond)
 
@@ -229,20 +194,21 @@ class EasyAnt(Ant):
 
     def gofix(self):
         while True:
-            message = self.get_event()
-            
-            if message == None:
+        
+            try: 
+                (channel, event, data) = self.get_event()
+            except TypeError:
                 time.sleep(1)
                 _logger.debug("npk")
                 continue
-            
-            if message._id == Message.ID.BURST_TRANSFER_DATA:
-                self.on_burst_data(message._data)
-            elif message._id == Message.ID.BROADCAST_DATA:
-                self.on_broadcast_data(message._data)
+
+            if event == Message.Code.EVENT_RX_BURST_PACKET:
+                self.on_burst_data(data)
+            elif event == Message.Code.EVENT_RX_BROADCAST:
+                self.on_broadcast_data(data)
             else:
-                _logger.warning("MESSAGE UNKNOWN %s, %s", message._id, message._data)
-                _logger.warning("                %s", message)
+                _logger.warning("EVENT UNKNOWN %s, %s", channel, event)
+                _logger.warning("              %s", data)
 
     def on_burst_data(self, data):
         pass

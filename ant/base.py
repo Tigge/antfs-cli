@@ -67,8 +67,6 @@ class Message:
         CHANNEL_SEARCH_PRIORITY            = 0x75
         #SET_USB_INFO                       = 0xff
 
-
-
         # Notifications
         STARTUP_MESSAGE                    = 0x6F
         SERIAL_ERROR_MESSAGE               = 0xAE
@@ -132,6 +130,12 @@ class Message:
         USB_STRING_WRITE_FAIL              = 112
         MESG_SERIAL_ERROR_ID               = 174
 
+        EVENT_RX_BROADCAST                 = 1000
+        EVENT_RX_FLAG_BROADCAST            = 1001
+        EVENT_RX_ACKNOWLEDGED              = 2000
+        EVENT_RX_FLAG_ACKNOWLEDGED         = 2001
+        EVENT_RX_BURST_PACKET              = 3000
+        EVENT_RX_FLAG_BURST_PACKET         = 3001
 
     def __init__(self, mId, data):
         self._sync     = 0xa4
@@ -156,7 +160,6 @@ class Message:
     '''
     @staticmethod
     def parse(buf):
-
         sync     = buf[0]
         length   = buf[1]
         mId      = buf[2]
@@ -327,13 +330,41 @@ class Ant(threading.Thread):
         self._message_queue_cond = threading.Condition()
         self._message_queue      = collections.deque()
 
-        self._buffer = []
+        self._buffer = array.array('B', [])
+        self._burst_data = array.array('B', [])
 
         self._running = True
 
     def stop(self):
         self._running = False
         self.join()
+
+    def _on_broadcast(self, message):
+        self.channel_event_function(message._data[0],
+                Message.Code.EVENT_RX_BROADCAST, message._data[1:])
+
+    def _on_acknowledge(self, message):
+        self.channel_event_function(message._data[0],
+                Message.Code.EVENT_RX_ACKNOWLEDGED, message._data[1:])
+
+    def _on_burst_data(self, message):
+
+        sequence = message._data[0] >> 5
+        channel  = message._data[0] & 0b00011111
+        data     = message._data[1:]
+        
+        self._burst_data.extend(data)
+        
+        # Last sequence (indicated by bit 3)
+        if sequence & 0b100 != 0:
+            self.channel_event_function(channel,
+                    Message.Code.EVENT_RX_BURST_PACKET, self._burst_data)
+            self._burst_data = array.array('B', [])
+        # Normal sequence
+        else:
+            #print "sequence", sequence, message._data[0]
+            #assert sequence == burst_seq + 1 or (sequence == 0 and burst_seq & 0b100) or (sequence == 1 and burst_seq == 3)
+            return
 
     def run(self):
 
@@ -343,39 +374,51 @@ class Ant(threading.Thread):
             try:
                 message = self.read_message()
 
-                # TODO: EVENT_RX_ACKNOWLEDGED (EVENT_RX_FLAG_ACKNOWLEDGED, EVENT_RX_EXT_ACKNOWLEDGED) for acknowledged data, EVENT_RX_BROADCAST (EVENT_RX_FLAG_BROADCAST, EVENT_RX_EXT_BROADCAST) for broadcast data, and EVENT_RX_BURST (EVENT_RX_FLAG_BURST, VENT_RX_EXT_BURST)
+                # TODO: flag and extended for broadcast, acknowledge, and burst
 
-
-                # Response function
-                if (message._id == Message.ID.RESPONSE_CHANNEL \
-                    and message._data[1] != 0x01) or message._id in [\
-                    Message.ID.STARTUP_MESSAGE, \
-                    Message.ID.SERIAL_ERROR_MESSAGE, \
-                    Message.ID.RESPONSE_CHANNEL_STATUS, \
-                    Message.ID.RESPONSE_CHANNEL_ID, \
-                    Message.ID.RESPONSE_VERSION, \
-                    Message.ID.RESPONSE_CAPABILITIES, \
-                    Message.ID.RESPONSE_SERIAL_NUMBER]:
-
-                    _logger.debug("Got response, %r", message)
-                    self.response_function(message)
-
-                # Channel event
-                elif message._id in [\
-                    Message.ID.BROADCAST_DATA, \
-                    Message.ID.ACKNOWLEDGE_DATA, \
-                    Message.ID.BURST_TRANSFER_DATA, \
-                    Message.ID.RESPONSE_CHANNEL]:
-
-                    _logger.debug("Got channel event, %r", message)
-                    self.channel_event_function(message)
+                # Only do callbacks for new data. Resent data only indicates
+                # a new channel timeslot.
+                if not (message._id == Message.ID.BROADCAST_DATA and 
+                    message._data == self._last_data):
+                   
+                    # Notifications
+                    if message._id in [Message.ID.STARTUP_MESSAGE, \
+                            Message.ID.SERIAL_ERROR_MESSAGE]:
+                        self.response_function(None, message._id, message._data)
+                    # Response (no channel)
+                    if message._id in [Message.ID.RESPONSE_VERSION, \
+                            Message.ID.RESPONSE_CAPABILITIES, \
+                            Message.ID.RESPONSE_SERIAL_NUMBER]:
+                        self.response_function(None, message._id, message._data)
+                    # Response (channel)
+                    if message._id in [Message.ID.RESPONSE_CHANNEL_STATUS, \
+                            Message.ID.RESPONSE_CHANNEL_ID]:
+                        self.response_function(message._data[0], message._id,
+                                               message._data[1:])
+                    # Response (other)
+                    elif (message._id == Message.ID.RESPONSE_CHANNEL \
+                          and message._data[1] != 0x01):
+                        self.response_function(message._data[0], 
+                                message._data[1], message._data[2:])
+                    # Channel event
+                    elif message._id == Message.ID.BROADCAST_DATA:
+                        self._on_broadcast(message)
+                    elif message._id == Message.ID.ACKNOWLEDGE_DATA:
+                        self._on_acknowledge(message)
+                    elif message._id == Message.ID.BURST_TRANSFER_DATA:
+                        self._on_burst_data(message)
+                    elif message._id == Message.ID.RESPONSE_CHANNEL:
+                        _logger.debug("Got channel event, %r", message)
+                        self.channel_event_function(message._data[0],
+                                message._data[1], message._data[2:])
+                    else:
+                        _logger.warning("Got unknown message, %r", message)
                 else:
-                    _logger.warning("Got unknown message, %r", message)
+                    _logger.debug("No new data this period")
 
                 # Send messages in queue, on indicated time slot
                 if message._id == Message.ID.BROADCAST_DATA:
                     _logger.debug("Got broadcast data, examine queue to see if we should send anything back")
-                    # TODO send queued messages
                     if self._message_queue_cond.acquire(blocking=False):
                         while len(self._message_queue) > 0:
                             m = self._message_queue.popleft()
@@ -389,6 +432,7 @@ class Ant(threading.Thread):
                             _logger.debug(" - no messages in queue")
                         self._message_queue_cond.release()
 
+                self._last_data = message._data
 
             except usb.USBError as e:
                 _logger.warning("%s, %r", type(e), e.args)
@@ -483,9 +527,9 @@ class Ant(threading.Thread):
             channelSeq = channel | sequence << 5
             self.send_burst_transfer_packet(channelSeq, data[i], first=i==0)
 
-    def response_function(self, message):
+    def response_function(self, channel, event, data):
         pass
 
-    def channel_event_function(self, message):
+    def channel_event_function(self, channel, event, data):
         pass
 
