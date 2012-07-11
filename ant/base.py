@@ -132,6 +132,12 @@ class Message:
         EVENT_RX_BURST_PACKET              = 3000
         EVENT_RX_FLAG_BURST_PACKET         = 3001
 
+        @staticmethod
+        def lookup(event):
+            for key, value in Message.Code.__dict__.items():
+                if type(value) == int and value == event:
+                    return key
+
     def __init__(self, mId, data):
         self._sync     = 0xa4
         self._length   = len(data)
