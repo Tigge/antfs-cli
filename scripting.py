@@ -31,7 +31,7 @@ class Runner:
 
     def get_scripts(self):
         scripts = []
-        for dirname, dirnames, filenames in os.walk(self.directory):
+        for _, _, filenames in os.walk(self.directory):
             for filename in filenames:
                 scripts.append(filename)
         return sorted(scripts)

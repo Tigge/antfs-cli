@@ -20,8 +20,6 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-from base import Ant, Message
-
 import array
 import datetime
 import struct
@@ -184,9 +182,9 @@ class Manager:
             
                 _logger.debug("File %r continue from %d", self._object, packet._got + packet._left)
                 # Start next request at index
-                next = list(map(ord, struct.pack("<I", packet._got + packet._left)))
+                nextPart = list(map(ord, struct.pack("<I", packet._got + packet._left)))
                 self._ant.send_burst_transfer(0x00, [\
-                    [0x44, 0x09, self._object._index, 0x00] + next, \
+                    [0x44, 0x09, self._object._index, 0x00] + nextPart, \
                     [0x00, 0x00] + packet._checksum.tolist() + [0x00, 0x00, 0x00, 0x00]])
 
         return None

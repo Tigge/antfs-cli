@@ -22,21 +22,15 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-from ant.base import Ant, Message
+from ant.base import Message
 from ant.easy import EasyAnt
 import ant.fs
 
 import utilities
 import scripting
 
-import logging
-import threading
-import time
-import signal
-import collections
-
 import array
-import datetime
+import logging
 import os
 import struct
 import sys
@@ -119,8 +113,11 @@ class Garmin(EasyAnt):
     def init(self):
         print "Request basic information..."
         m = self.request_message(0x00, Message.ID.RESPONSE_VERSION)
+        print "  ANT version:  ", struct.unpack("<10sx", m[2])[0]
         m = self.request_message(0x00, Message.ID.RESPONSE_CAPABILITIES)
+        print "  Capabilities: ", m[2]
         m = self.request_message(0x00, Message.ID.RESPONSE_SERIAL_NUMBER)
+        print "  Serial number:", struct.unpack("<I", m[2])[0]
         
         print "Starting system..."
         
@@ -194,7 +191,7 @@ class Garmin(EasyAnt):
             print "String length: ", strlen
             print "Unit ID:       ", unitid
             print "Product name:  ", name
-            
+                
             self.unitid = unitid
             
             try:
@@ -296,9 +293,7 @@ class Garmin(EasyAnt):
             self.gofix()
         except KeyboardInterrupt:
             sys.exit(1)
-        except Exception as e:
-            print e, type(e)
-            traceback.print_stack()
+        except Exception:
             traceback.print_exc()
         finally:
             self.stop()
@@ -322,5 +317,3 @@ def main():
 
 if __name__ == "__main__":
     sys.exit(main())
-
-
