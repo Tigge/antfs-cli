@@ -29,6 +29,18 @@ from base import Ant, Message
 
 _logger = logging.getLogger("garmin.ant.easy")
 
+class AntException(Exception):
+    pass
+
+class TransferFailedException(AntException):
+    pass
+
+class ReceiveFailedException(AntException):
+    pass
+
+class ReceiveFailException(AntException):
+    pass
+
 class EasyAnt(Ant):
     
     def __init__(self, idVendor, idProduct):
@@ -85,43 +97,48 @@ class EasyAnt(Ant):
                     queue.remove(message)
                     condition.release()
                     return process(message)
+                elif (message[1] == 1 and 
+                     message[2][0] == Message.Code.EVENT_TRANSFER_TX_FAILED):
+                    _logger.warning("Transfer send failed:")
+                    _logger.warning(message)
+                    queue.remove(message)
+                    condition.release()
+                    raise TransferFailedException()
             _logger.debug(" - could not find response matching %r", match)
             condition.wait(1.0)
-        raise Exception("Timedout while waiting for message");
-
-    def wait_for_event(self, ok_codes, error_codes):
+        raise AntException("Timed out while waiting for message");
+        
+    def wait_for_event(self, ok_codes):
         def match((channel, event, data)):
-            return data[0] in ok_codes or data[0] in error_codes
+            return data[0] in ok_codes
         def process((channel, event, data)):
-            if data[0] in ok_codes:
-                return (channel, event, data)
-            else:
-                raise Exception("Responded with error " + str(data[0]))
+            return (channel, event, data)
         return self._wait_for_message(match, process, self._events,
                self._event_cond)
 
-    def wait_for_response(self, id):
+    def wait_for_response(self, event_id):
         """
         Waits for a response to a specific message sent by the channel response
-        message, 0x40. It's exepcted to return RESPONSE_NO_ERROR, 0x00.
+        message, 0x40. It's expected to return RESPONSE_NO_ERROR, 0x00.
         """
         def match((channel, event, data)):
-            return event == id
+            return event == event_id
         def process((channel, event, data)):
             if data[0] == Message.Code.RESPONSE_NO_ERROR:
                 return (channel, event, data)
             else:
-                raise Exception("Reseponded with error " + str(data[0]))
+                raise Exception("Responded with error " + str(data[0])
+                        + ":" + Message.Code.lookup(data[0]))
         return self._wait_for_message(match, process, self._responses,
                self._responses_cond)
 
-    def wait_for_special(self, id):
+    def wait_for_special(self, event_id):
         """
-        Waits for special responsens to messages such as Channel ID, ANT
+        Waits for special responses to messages such as Channel ID, ANT
         Version, etc. This does not throw any exceptions, besides timeouts.
         """
         def match((channel, event, data)):
-            return event == id
+            return event == event_id
         def process(event):
             return event
         return self._wait_for_message(match, process, self._responses,
@@ -169,13 +186,15 @@ class EasyAnt(Ant):
         Ant.set_search_waveform(self, channel, waveform)
         return self.wait_for_response(Message.ID.SET_SEARCH_WAVEFORM)
 
-    def send_acknowledged_data(self, channel, broadcastData):
-        _logger.debug("send acknowledged data %s", channel)
-        Ant.send_acknowledged_data(self, channel, broadcastData)
-        x = self.wait_for_event([Message.Code.EVENT_TRANSFER_TX_COMPLETED],
-                                [Message.Code.EVENT_TRANSFER_TX_FAILED])
-        _logger.debug("done sending acknowledged data %s", channel)
-        return x
+    def send_acknowledged_data(self, channel, data):
+        try:
+            _logger.debug("send acknowledged data %s", channel)
+            Ant.send_acknowledged_data(self, channel, data)
+            self.wait_for_event([Message.Code.EVENT_TRANSFER_TX_COMPLETED])
+            _logger.debug("done sending acknowledged data %s", channel)
+        except TransferFailedException:
+            _logger.warning("failed to send acknowledged data %s, retrying", channel)
+            self.send_acknowledged_data(channel, data)
 
     def send_burst_transfer_packet(self, channelSeq, data, first):
         _logger.debug("send burst transfer packet %s", data)
@@ -183,22 +202,23 @@ class EasyAnt(Ant):
 
 
     def send_burst_transfer(self, channel, data):
-        _logger.debug("send burst transfer %s", channel)
-        Ant.send_burst_transfer(self, channel, data)
-        self.wait_for_event([Message.Code.EVENT_TRANSFER_TX_START],
-                            [Message.Code.EVENT_TRANSFER_TX_FAILED])
-        x = self.wait_for_event([Message.Code.EVENT_TRANSFER_TX_COMPLETED],
-                                [Message.Code.EVENT_TRANSFER_TX_FAILED])
-        _logger.debug("done sending burst transfer %s", channel)
-        return x
+        try:
+            self._last_call = (self.send_burst_transfer, [channel, data])
+            _logger.debug("send burst transfer %s", channel)
+            Ant.send_burst_transfer(self, channel, data)
+            self.wait_for_event([Message.Code.EVENT_TRANSFER_TX_START])
+            self.wait_for_event([Message.Code.EVENT_TRANSFER_TX_COMPLETED])
+            _logger.debug("done sending burst transfer %s", channel)
+        except TransferFailedException:
+            _logger.warning("failed to send burst transfer %s, retrying", channel)
+            self.send_burst_transfer(channel, data)
 
     def gofix(self):
         while True:
         
-            try: 
+            try:
                 (channel, event, data) = self.get_event()
             except TypeError:
-                time.sleep(1)
                 _logger.debug("npk")
                 continue
 
@@ -207,8 +227,15 @@ class EasyAnt(Ant):
             elif event == Message.Code.EVENT_RX_BROADCAST:
                 self.on_broadcast_data(data)
             else:
-                _logger.warning("EVENT UNKNOWN %s, %s", channel, event)
-                _logger.warning("              %s", data)
+                # TODO: we should not really ignore this...
+                if data[0] == Message.Code.EVENT_RX_FAIL:
+                    _logger.warning("Got EVENT_RX_FAIL, continuing...")
+                    continue
+                _logger.warning("UNHANDLED EVENT %s, %d:%s", channel, event,
+                        Message.Code.lookup(data[0]))
+                _logger.warning("           DATA %s", data)
+                raise Exception("Unhandled event " + str(data[0])
+                        + ":" + Message.Code.lookup(data[0]))
 
     def on_burst_data(self, data):
         pass
