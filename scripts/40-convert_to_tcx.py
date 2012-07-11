@@ -47,11 +47,13 @@ except:
 targetfile = os.path.splitext(basefile)[0] + ".tcx"
 
 # Run FIT-to-TCX
-process = subprocess.Popen([fittotcx, filename], stdout=subprocess.PIPE)
+process = subprocess.Popen([fittotcx, filename], stdout=subprocess.PIPE,
+                           stderr=subprocess.PIPE)
 (data, _) = process.communicate()
 
 # Write result
-f = file(os.path.join(targetdir, targetfile), 'w')
-f.write(data)
-f.close()
+if process.returncode == 0:
+    f = file(os.path.join(targetdir, targetfile), 'w')
+    f.write(data)
+    f.close()
 
