@@ -23,14 +23,9 @@
 import usb.core
 import usb.util
 
-import sys
 import array
-import struct
 import collections
-
 import threading
-import time
-
 import logging
 
 _logger = logging.getLogger("garmin.ant.base")
@@ -166,97 +161,11 @@ class Message:
         data     = buf[3:-1]
         checksum = buf[-1]
 
+        assert sync     == 0xa4
         assert length   == len(data)
         assert checksum == reduce(lambda x, y: x ^ y, buf[:-1])
 
-        #print str.format("S: {0:#b} {0:#x}, len: {1:d}, id: {2:#X}, data: {3}, checksum: {4:#b}", self.sync, self.length, self.id, self.data, self.checksum)
-        #print data
-
         return Message(mId, data)
-
-
-    '''
-    Print a string representation of the message content
-    
-    This function is only intended as a debug tool and should not be used 
-    for other purposes.
-    '''
-    @staticmethod
-    def debugprint(message):
-        
-        if message._id == Message.ID.BURST_TRANSFER_DATA:
-            print "Burst transfer data"
-            print "Sequence number: ", self._data[0] >> 5
-            print "Channel number:  ", self._data[0] & 0b00011111
-            print "Data:            ", self._data[1:]
-            if length > 9:
-                print "Extended"
-
-        elif message._id == Message.ID.BROADCAST_DATA:
-            print "Broadcast data"
-            print "\tChannel number:", self._data[0]
-            print "\tData:          ", _format_list(self._data[1:9])
-            if length != 9:
-                print "Extended flags:", self._data[10]
-                print "Extended data bytes:", self._data[11:]
-
-        elif message._id == Message.ID.RESPONSE_CHANNEL_STATUS:
-            print "Channel Status"
-            print "\tChannel number:", self._data[0]
-            print "\tChannel type:  ", str.format("{0:#04x}", (self._data[1] & 0b11110000) >> 3)
-            print "\tNetwork number:", str.format("{0:d}   ", (self._data[1] & 0b00001100) >> 1)
-            print "\tChannel state: ", str.format("{0:d}   ", (self._data[1] & 0b00000011))
-            if (self._data[1] & 0b00000011) == 0:
-                print "\t\tUn-assigned"
-            elif (self._data[1] & 0b00000011) == 1:
-                print "\t\tAssigned"
-            elif (self._data[1] & 0b00000011) == 2:
-                print "\t\tSearching"
-            elif (self._data[1] & 0b00000011) == 3:
-                print "\t\tTracking"
-        elif message._id == Message.ID.RESPONSE_CHANNEL_ID:
-            print "Channel Id"
-            print "\tChannel number:   ", self._data[0]
-            print "\tDevice number:    ", self._data[1], self._data[2]
-            print "\tDevice type ID:   ", self._data[3]
-            print "\tTransmission type:", self._data[4]
-        elif message._id == Message.ID.RESPONSE_VERSION:
-            print "Version"
-            print "\t", data[:-1].tostring()
-        elif message._id == Message.ID.RESPONSE_CAPABILITIES:
-            print "Capabilites"
-            print "\tMax Channels:", self._data[0]
-            print "\tMax Networks:", self._data[1]
-            print "\tStandard Opt:", str.format("{0:#010b}", int(self._data[2]))
-            print "\tAdvanced Opt:", str.format("{0:#010b}", int(self._data[3]))
-            print "\tAdvanced2Opt:", str.format("{0:#010b}", int(self._data[4]))
-        elif message._id == Message.ID.RESPONSE_SERIAL_NUMBER:
-            print "Serial Number"
-            print "\t", struct.unpack("<I", self._data)[0]
-        elif message._id == Message.ID.STARTUP_MESSAGE:
-            print "Startup Message"
-            print "\tBits:", str.format("{0:#010b}", int(self._data[0]))
-        elif message._id == Message.ID.SERIAL_ERROR_MESSAGE:
-            print "Serial Error Message"
-            errno = self.self._data[0]
-            if errno == 0:
-                print "\tANT message dit not have the Tx sync byte (0xA4)"
-            elif errno == 2:
-                print "\tANT message checksum was incorrect"
-            elif errno == 3:
-                print "\tANT message size was too large"
-            else:
-                print "\tUndefined error"
-            print "\tErrornous message: ", self._data[0:]
-        elif message._id == Message.ID.RESPONSE_CHANNEL:
-            print "Channel response"
-            print "\tChannel number:", self._data[0]
-            print "\tMessage ID:    ", str.format("{0:#04x}", self._data[1])
-            print "\tMessage Code:  ", self._data[2]
-        else:
-            print "Unknown message", str.format("{0:#x}", int(self._id)), self._data
-
-
 
 
 class Ant(threading.Thread):
@@ -332,6 +241,7 @@ class Ant(threading.Thread):
 
         self._buffer = array.array('B', [])
         self._burst_data = array.array('B', [])
+        self._last_data = array.array('B', [])
 
         self._running = True
 
@@ -464,7 +374,7 @@ class Ant(threading.Thread):
 
     # Ant functions
 
-    def unassign_channel(channel):
+    def unassign_channel(self, channel):
         pass
 
     def assign_channel(self, channel, channelType, networkNumber):
