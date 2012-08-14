@@ -296,7 +296,11 @@ def main():
     _logger.setLevel(logging.DEBUG)
     handler = logging.FileHandler(currentTime + "-" + AntFSCLI.PRODUCT_NAME + ".log", "w")
     #handler = logging.StreamHandler()
-    handler.setFormatter(logging.Formatter(fmt='%(threadName)-10s %(asctime)s  %(name)-15s  %(levelname)-8s  %(message)s'))
+
+    # If you add new module/logger name longer than the 15 characters just increase the value after %(name).
+    # The longest module/logger name now is "ant.base" and "ant.easy".
+    handler.setFormatter(logging.Formatter(fmt='%(threadName)-10s %(asctime)s  %(name)-15s  %(levelname)-8s  %(message)s (%(filename)s:%(lineno)d)'))
+
     _logger.addHandler(handler)
 
     try:
