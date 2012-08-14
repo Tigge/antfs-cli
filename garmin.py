@@ -307,7 +307,7 @@ def main():
     logger.setLevel(logging.DEBUG)
     handler = logging.FileHandler("garmin.log", "w")
     #handler = logging.StreamHandler()
-    handler.setFormatter(logging.Formatter(fmt='%(asctime)s  %(name)-15s  %(levelname)-8s  %(message)s'))
+    handler.setFormatter(logging.Formatter(fmt='%(asctime)s  %(name)s  %(lineno)-15d  %(levelname)-8s  %(message)s'))
     logger.addHandler(handler)
 
     g = Garmin()
