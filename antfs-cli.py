@@ -33,6 +33,7 @@ import scripting
 
 import array
 import logging
+import time
 import os
 import struct
 import sys
@@ -286,10 +287,14 @@ class AntFSCLI(Application):
         return self.create(typ, data)
 
 def main():
+    
+    # Find out what time it is
+    # used for logging filename.
+    currentTime = time.strftime("%Y%m%d-%H%M%S")
 
     # Set up logging
     _logger.setLevel(logging.DEBUG)
-    handler = logging.FileHandler(AntFSCLI.PRODUCT_NAME + ".log", "w")
+    handler = logging.FileHandler(currentTime + "-" + AntFSCLI.PRODUCT_NAME + ".log", "w")
     #handler = logging.StreamHandler()
     handler.setFormatter(logging.Formatter(fmt='%(threadName)-10s %(asctime)s  %(name)-15s  %(levelname)-8s  %(message)s'))
     _logger.addHandler(handler)
