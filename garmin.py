@@ -113,22 +113,22 @@ class Garmin(EasyAnt):
 
     def init(self):
         _logger.info("Request basic information...")
-        print "Request basic information..."
+        # print "Request basic information..."
         m = self.request_message(0x00, Message.ID.RESPONSE_VERSION)
 
         _logger.info("  ANT version:  " + struct.unpack("<10sx", m[2])[0])
-        print "  ANT version:  ", struct.unpack("<10sx", m[2])[0]
+        # print "  ANT version:  ", struct.unpack("<10sx", m[2])[0]
         m = self.request_message(0x00, Message.ID.RESPONSE_CAPABILITIES)
 
         _logger.info("  Capabilities: " + str(m[2]))
-        print "  Capabilities: ", m[2]
+        # print "  Capabilities: ", m[2]
         m = self.request_message(0x00, Message.ID.RESPONSE_SERIAL_NUMBER)
 
         _logger.info("  Serial number: " + str(struct.unpack("<I", m[2])[0]))
-        print "  Serial number:", struct.unpack("<I", m[2])[0]
+        # print "  Serial number:", struct.unpack("<I", m[2])[0]
         
         _logger.info("Starting system...")
-        print "Starting system..."
+        # print "Starting system..."
         
         NETWORK_KEY= [0xa8, 0xa4, 0x23, 0xb9, 0xf5, 0x5e, 0x63, 0xc1]
         
@@ -142,12 +142,12 @@ class Garmin(EasyAnt):
         self.set_channel_id(0x00, [0x00, 0x00], 0x01, 0x00)
         
         _logger.info("Open channel...")
-        print "Open channel..."
+        # print "Open channel..."
         self.open_channel(0x00)
         self.request_message(0x00, Message.ID.RESPONSE_CHANNEL_STATUS)
         
         _logger.info("Searching...")
-        print "Searching..."
+        # print "Searching..."
         
         self.state = Garmin.State.SEARCHING
 
@@ -166,8 +166,7 @@ class Garmin(EasyAnt):
 
             # Printing information to user about each file in file index.
             _logger.info(" - " + str(f.get_index()) + ":" + str(f.get_type()) + "   " + str(f.get_size()) + "   " + str(f.get_date()))
-            print " - {0}:\t{1}\t{2}\t{3}".format(f.get_index(), f.get_type(),
-                  f.get_size(), f.get_date())
+            # print " - {0}:\t{1}\t{2}\t{3}".format(f.get_index(), f.get_type(), f.get_size(), f.get_date())
         # Skip first two files (seems special)
         self._index._files = self._index._files[2:]
         self.download_file_next()
@@ -177,16 +176,16 @@ class Garmin(EasyAnt):
             f = self._index._files.pop(0)
             if os.path.exists(self.get_filepath(f)):
                 _logger.info("Skipping " + self.get_filename(f)) 
-                print "Skipping", self.get_filename(f)
+                # print "Skipping", self.get_filename(f)
                 self.download_file_next()
             else:
                 _logger.info("Downloading " + self.get_filename(f)) 
-                print "Downloading", self.get_filename(f),
+                # print "Downloading", self.get_filename(f),
                 sys.stdout.flush()
                 self.fs.download(f)
         else:
             _logger.info("Done!") 
-            print "Done!"
+            # print "Done!"
             sys.exit(0)
 
     def download_file_done(self, f):
@@ -194,7 +193,7 @@ class Garmin(EasyAnt):
             f.get_data().tofile(fd)
         
         _logger.info("File transfer completed")
-        print "- File transfer completed"
+        # print "- File transfer completed"
         
         self.scriptr.run_download(self.get_filepath(f))
         
@@ -209,13 +208,13 @@ class Garmin(EasyAnt):
             name             = data[16:16 + strlen].tostring()
 
             _logger.info("String length: " + str(strlen))
-            print "String length: ", strlen
+            # print "String length: ", strlen
 
             _logger.info("Unit ID: " + str(unitid))
-            print "Unit ID:       ", unitid
+            # print "Unit ID:       ", unitid
 
             _logger.info("Product name: " + str(name))
-            print "Product name:  ", name
+            # print "Product name:  ", name
                 
             self.unitid = unitid
             
@@ -304,7 +303,7 @@ class Garmin(EasyAnt):
                 [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]])
              
             _logger.info("Downloading index...")
-            print "Downloading index..."
+            # print "Downloading index..."
             self.fs.download_index()
             #self.send_burst_transfer(0x00, [\
             #    [0x44, 0x09, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00], \
@@ -333,17 +332,20 @@ def main():
     # used for logging filename.
     currentTime = time.strftime("%Y%m%d-%H%M%S")
 
-    # Set up logging
+    # Setting up logging to file
     logger = logging.getLogger("garmin")
     logger.setLevel(logging.DEBUG)
     handler = logging.FileHandler(currentTime + "-garmin.log", "w")
-    #handler = logging.StreamHandler()
-
     # If you add new module/logger name longer than the 15 characters just increase the value after %(name).
     # The longest module/logger name now is "garmin.ant.base" and "garmin.ant.easy".
     handler.setFormatter(logging.Formatter(fmt='%(asctime)s  %(name)-15s  %(levelname)-8s  %(message)s (%(filename)s:%(lineno)d)'))
-
     logger.addHandler(handler)
+
+    # Setting up the console messages (or console "logging") 
+    console = logging.StreamHandler()
+    console.setLevel(logging.INFO)
+    console.setFormatter(logging.Formatter(fmt='%(levelname)-8s %(message)s'))
+    logger.addHandler(console)
 
     g = Garmin()
     g.gogo()
