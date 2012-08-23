@@ -339,14 +339,10 @@ def main():
     handler = logging.FileHandler(currentTime + "-garmin.log", "w")
     #handler = logging.StreamHandler()
 
-    # New log format which adds linenumber.
-    # If you add new module/logger names longer than the 15 characters just increase the value after %(name).
+    # If you add new module/logger name longer than the 15 characters just increase the value after %(name).
     # The longest module/logger name now is "garmin.ant.base" and "garmin.ant.easy".
-    # handler.setFormatter(logging.Formatter(fmt='%(asctime)s  %(name)15s:%(lineno)-4d  %(levelname)-8s  %(message)s'))
     handler.setFormatter(logging.Formatter(fmt='%(asctime)s  %(name)-15s  %(levelname)-8s  %(message)s (%(filename)s:%(lineno)d)'))
 
-    # Previous log format. Keep this for awhile until we are satisfied with the new one. 
-    #handler.setFormatter(logging.Formatter(fmt='%(asctime)s  %(name)-15s  %(levelname)-8s  %(message)s'))
     logger.addHandler(handler)
 
     g = Garmin()
