@@ -44,6 +44,17 @@ PRODUCT_NAME = "garmin-extractor"
 
 _logger = logging.getLogger("garmin")
 
+# This class filters logging to console
+# to only show INFO level messages
+# http://stackoverflow.com/questions/8162419/python-logging-specific-level-only/8163115#8163115
+class OnlyLogLevel(object):
+    def __init__(self, level):
+        self.__level = level
+
+    def filter(self, logRecord):
+        return logRecord.levelno <= self.__level
+
+# Main class
 class Garmin(EasyAnt):
 
     class State:
@@ -112,15 +123,23 @@ class Garmin(EasyAnt):
             _logger.debug("%s, %s, %s", self.myid, self.auth, self.pair)
 
     def init(self):
-        print "Request basic information..."
+        _logger.info("Request basic information...")
+        # print "Request basic information..."
         m = self.request_message(0x00, Message.ID.RESPONSE_VERSION)
-        print "  ANT version:  ", struct.unpack("<10sx", m[2])[0]
+
+        _logger.info("  ANT version:  " + struct.unpack("<10sx", m[2])[0])
+        # print "  ANT version:  ", struct.unpack("<10sx", m[2])[0]
         m = self.request_message(0x00, Message.ID.RESPONSE_CAPABILITIES)
-        print "  Capabilities: ", m[2]
+
+        _logger.info("  Capabilities: " + str(m[2]))
+        # print "  Capabilities: ", m[2]
         m = self.request_message(0x00, Message.ID.RESPONSE_SERIAL_NUMBER)
-        print "  Serial number:", struct.unpack("<I", m[2])[0]
+
+        _logger.info("  Serial number: " + str(struct.unpack("<I", m[2])[0]))
+        # print "  Serial number:", struct.unpack("<I", m[2])[0]
         
-        print "Starting system..."
+        _logger.info("Starting system...")
+        # print "Starting system..."
         
         NETWORK_KEY= [0xa8, 0xa4, 0x23, 0xb9, 0xf5, 0x5e, 0x63, 0xc1]
         
@@ -133,11 +152,13 @@ class Garmin(EasyAnt):
         self.set_search_waveform(0x00, [0x53, 0x00])
         self.set_channel_id(0x00, [0x00, 0x00], 0x01, 0x00)
         
-        print "Open channel..."
+        _logger.info("Open channel...")
+        # print "Open channel..."
         self.open_channel(0x00)
         self.request_message(0x00, Message.ID.RESPONSE_CHANNEL_STATUS)
-
-        print "Searching..."
+        
+        _logger.info("Searching...")
+        # print "Searching..."
         
         self.state = Garmin.State.SEARCHING
 
@@ -153,8 +174,10 @@ class Garmin(EasyAnt):
     def download_index_done(self, index):
         self._index = index
         for f in self._index._files:
-            print " - {0}:\t{1}\t{2}\t{3}".format(f.get_index(), f.get_type(),
-                  f.get_size(), f.get_date())
+
+            # Printing information to user about each file in file index.
+            _logger.info(" - " + str(f.get_index()) + ":" + str(f.get_type()) + "   " + str(f.get_size()) + "   " + str(f.get_date()))
+            # print " - {0}:\t{1}\t{2}\t{3}".format(f.get_index(), f.get_type(), f.get_size(), f.get_date())
         # Skip first two files (seems special)
         self._index._files = self._index._files[2:]
         self.download_file_next()
@@ -163,20 +186,25 @@ class Garmin(EasyAnt):
         if len(self._index._files) > 0:
             f = self._index._files.pop(0)
             if os.path.exists(self.get_filepath(f)):
-                print "Skipping", self.get_filename(f)
+                _logger.info("Skipping " + self.get_filename(f)) 
+                # print "Skipping", self.get_filename(f)
                 self.download_file_next()
             else:
-                print "Downloading", self.get_filename(f),
+                _logger.info("Downloading " + self.get_filename(f)) 
+                # print "Downloading", self.get_filename(f),
                 sys.stdout.flush()
                 self.fs.download(f)
         else:
-            print "Done!"
+            _logger.info("Done!") 
+            # print "Done!"
             sys.exit(0)
 
     def download_file_done(self, f):
         with open(self.get_filepath(f), "w") as fd:
             f.get_data().tofile(fd)
-        print "- done"
+        
+        _logger.info("File transfer completed")
+        # print "- File transfer completed"
         
         self.scriptr.run_download(self.get_filepath(f))
         
@@ -189,9 +217,15 @@ class Garmin(EasyAnt):
             _logger.debug("%d, %d, %s", len(data), len(data[11:]), data[11:])
             (strlen, unitid) = struct.unpack("<11xBI", data[:16])
             name             = data[16:16 + strlen].tostring()
-            print "String length: ", strlen
-            print "Unit ID:       ", unitid
-            print "Product name:  ", name
+
+            _logger.info("String length: " + str(strlen))
+            # print "String length: ", strlen
+
+            _logger.info("Unit ID: " + str(unitid))
+            # print "Unit ID:       ", unitid
+
+            _logger.info("Product name: " + str(name))
+            # print "Product name:  ", name
                 
             self.unitid = unitid
             
@@ -278,7 +312,9 @@ class Garmin(EasyAnt):
             self.send_burst_transfer(0x00, [\
                 [0x44, 0x0a, 0xfe, 0xff, 0x10, 0x00, 0x00, 0x00], \
                 [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]])
-            print "Downloading index..."
+             
+            _logger.info("Downloading index...")
+            # print "Downloading index..."
             self.fs.download_index()
             #self.send_burst_transfer(0x00, [\
             #    [0x44, 0x09, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00], \
@@ -307,20 +343,25 @@ def main():
     # used for logging filename.
     currentTime = time.strftime("%Y%m%d-%H%M%S")
 
-    # Set up logging
+    # Setting up logging to file
     logger = logging.getLogger("garmin")
     logger.setLevel(logging.DEBUG)
     handler = logging.FileHandler(currentTime + "-garmin.log", "w")
-    #handler = logging.StreamHandler()
-
     # If you add new module/logger name longer than the 15 characters just increase the value after %(name).
     # The longest module/logger name now is "garmin.ant.base" and "garmin.ant.easy".
     handler.setFormatter(logging.Formatter(fmt='%(asctime)s  %(name)-15s  %(levelname)-8s  %(message)s (%(filename)s:%(lineno)d)'))
-
     logger.addHandler(handler)
+
+    # Setting up the console messages (or console "logging") 
+    console = logging.StreamHandler()
+    console.setLevel(logging.INFO)
+    console.addFilter(OnlyLogLevel(logging.INFO))
+    console.setFormatter(logging.Formatter(fmt='%(message)s'))
+    logger.addHandler(console)
 
     g = Garmin()
     g.gogo()
 
 if __name__ == "__main__":
     sys.exit(main())
+
