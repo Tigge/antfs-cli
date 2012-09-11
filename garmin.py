@@ -44,6 +44,17 @@ PRODUCT_NAME = "garmin-extractor"
 
 _logger = logging.getLogger("garmin")
 
+# This class filters logging to console
+# to only show INFO level messages
+# http://stackoverflow.com/questions/8162419/python-logging-specific-level-only/8163115#8163115
+class OnlyLogLevel(object):
+    def __init__(self, level):
+        self.__level = level
+
+    def filter(self, logRecord):
+        return logRecord.levelno <= self.__level
+
+# Main class
 class Garmin(EasyAnt):
 
     class State:
@@ -344,7 +355,8 @@ def main():
     # Setting up the console messages (or console "logging") 
     console = logging.StreamHandler()
     console.setLevel(logging.INFO)
-    console.setFormatter(logging.Formatter(fmt='%(levelname)-8s %(message)s'))
+    console.addFilter(OnlyLogLevel(logging.INFO))
+    console.setFormatter(logging.Formatter(fmt='%(message)s'))
     logger.addHandler(console)
 
     g = Garmin()
@@ -352,3 +364,4 @@ def main():
 
 if __name__ == "__main__":
     sys.exit(main())
+
