@@ -25,6 +25,7 @@ import usb.util
 
 import array
 import collections
+import struct
 import threading
 import logging
 
@@ -394,11 +395,13 @@ class Ant(threading.Thread):
         self.write_message(message)
 
     def set_channel_id(self, channel, deviceNum, deviceType, transmissionType):
-        message = Message(Message.ID.SET_CHANNEL_ID, [channel, deviceNum[0], deviceNum[1], deviceType, transmissionType])
+        data = array.array('B', struct.pack("<BHBB", channel, deviceNum, deviceType, transmissionType))
+        message = Message(Message.ID.SET_CHANNEL_ID, data)
         self.write_message(message)
 
     def set_channel_period(self, channel, messagePeriod):
-        message = Message(Message.ID.SET_CHANNEL_PERIOD, [channel] + messagePeriod)
+        data = array.array('B', struct.pack("<BH", channel, messagePeriod))
+        message = Message(Message.ID.SET_CHANNEL_PERIOD, data)
         self.write_message(message)
 
     def set_channel_search_timeout(self, channel, timeout):
