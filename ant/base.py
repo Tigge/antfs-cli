@@ -153,8 +153,10 @@ class Message:
                    self._length, self._checksum)
 
     def get(self):
-        return array.array('B', [self._sync, self._length, self._id]
-                           + self._data + [self._checksum])
+        result = array.array('B', [self._sync, self._length, self._id])
+        result.extend(self._data)
+        result.append(self._checksum)
+        return result
 
     '''
     Parse a message from an array
