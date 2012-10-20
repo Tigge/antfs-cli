@@ -302,12 +302,12 @@ class Ant(threading.Thread):
                             Message.ID.SERIAL_ERROR_MESSAGE]:
                         self.response_function(None, message._id, message._data)
                     # Response (no channel)
-                    if message._id in [Message.ID.RESPONSE_VERSION, \
+                    elif message._id in [Message.ID.RESPONSE_VERSION, \
                             Message.ID.RESPONSE_CAPABILITIES, \
                             Message.ID.RESPONSE_SERIAL_NUMBER]:
                         self.response_function(None, message._id, message._data)
                     # Response (channel)
-                    if message._id in [Message.ID.RESPONSE_CHANNEL_STATUS, \
+                    elif message._id in [Message.ID.RESPONSE_CHANNEL_STATUS, \
                             Message.ID.RESPONSE_CHANNEL_ID]:
                         self.response_function(message._data[0], message._id,
                                                message._data[1:])
