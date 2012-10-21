@@ -22,8 +22,9 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-from ant.base import Message
-from ant.easy import EasyAnt
+#from ant.base import Message
+from ant.easy.node import Node, Message
+from ant.easy.channel import Channel
 import ant.fs
 
 import utilities
@@ -43,7 +44,7 @@ PRODUCT_NAME = "garmin-extractor"
 
 _logger = logging.getLogger("garmin")
 
-class Garmin(EasyAnt):
+class Garmin():
 
     class State:
         INITIALIZING   = 0
@@ -57,8 +58,7 @@ class Garmin(EasyAnt):
 
     def __init__(self):
         # Create Ant
-        EasyAnt.__init__(self, ID_VENDOR, ID_PRODUCT)
-        #self.start()
+        self.node = Node(ID_VENDOR, ID_PRODUCT)
         
         self.state = Garmin.State.INITIALIZING
         
@@ -71,7 +71,6 @@ class Garmin(EasyAnt):
         
         _logger.debug("Creating directories")
         self.create_directories()
-        self.fs       = ant.fs.Manager(self)
         
         self.scriptr  = scripting.Runner(self.script_dir)
 
@@ -112,33 +111,40 @@ class Garmin(EasyAnt):
 
     def init(self):
         print "Request basic information..."
-        m = self.request_message(0x00, Message.ID.RESPONSE_VERSION)
+        m = self.node.request_message(Message.ID.RESPONSE_VERSION)
         print "  ANT version:  ", struct.unpack("<10sx", m[2])[0]
-        m = self.request_message(0x00, Message.ID.RESPONSE_CAPABILITIES)
+        m = self.node.request_message(Message.ID.RESPONSE_CAPABILITIES)
         print "  Capabilities: ", m[2]
-        m = self.request_message(0x00, Message.ID.RESPONSE_SERIAL_NUMBER)
+        m = self.node.request_message(Message.ID.RESPONSE_SERIAL_NUMBER)
         print "  Serial number:", struct.unpack("<I", m[2])[0]
         
         print "Starting system..."
         
         NETWORK_KEY= [0xa8, 0xa4, 0x23, 0xb9, 0xf5, 0x5e, 0x63, 0xc1]
         
-        self.reset_system()
-        self.set_network_key(0x00, NETWORK_KEY)
-        self.assign_channel(0x00, 0x00, 0x00)
-        self.set_channel_period(0x00, [0x00, 0x10])
-        self.set_channel_search_timeout(0x00, 0xff)
-        self.set_channel_rf_freq(0x00, 0x32)
-        self.set_search_waveform(0x00, [0x53, 0x00])
-        self.set_channel_id(0x00, [0x00, 0x00], 0x01, 0x00)
+        self.node.reset_system()
+        self.node.set_network_key(0x00, NETWORK_KEY)
+        self.channel = self.node.new_channel(Channel.Type.BIDIRECTIONAL_RECEIVE)
+        self.channel.on_broadcast_data = self.on_broadcast_data
+        self.channel.on_burst_data = self.on_burst_data
+        self.fs = ant.fs.Manager(self.channel)
+        self.channel.set_period(4096)
+        self.channel.set_search_timeout(255)
+        self.channel.set_rf_freq(50)
+        self.channel.set_search_waveform([0x53, 0x00])
+        self.channel.set_id(0, 0x01, 0)
+        
+
         
         print "Open channel..."
-        self.open_channel(0x00)
-        self.request_message(0x00, Message.ID.RESPONSE_CHANNEL_STATUS)
+        self.channel.open()
+        self.channel.request_message(Message.ID.RESPONSE_CHANNEL_STATUS)
 
         print "Searching..."
         
         self.state = Garmin.State.SEARCHING
+        
+        self.node.start()
 
     def get_filename(self, f):
         file_date_time = f.get_date().strftime("%Y-%m-%d_%H-%M-%S")
@@ -170,6 +176,7 @@ class Garmin(EasyAnt):
                 self.fs.download(f)
         else:
             print "Done!"
+            self.node.stop()
             sys.exit(0)
 
     def download_file_done(self, f):
@@ -202,14 +209,14 @@ class Garmin(EasyAnt):
             
             #TODO, pair or resume
             if self.pair:
-                self.send_acknowledged_data(0x00, [0x44, 0x05, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00])
-                self.request_message(0x00, Message.ID.RESPONSE_CHANNEL_STATUS)
+                self.channel.send_acknowledged_data([0x44, 0x05, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00])
+                self.channel.request_message(Message.ID.RESPONSE_CHANNEL_STATUS)
                 
                 sid = map(ord, list(str(unitid)))
                 
                 # Identifier, sync/id?
-                self.send_burst_transfer(0x00, [\
-                    [0x44, 0x04, 0x02, 0x0a] + self.myid, sid[0:8], \
+                self.channel.send_burst_transfer(\
+                    [[0x44, 0x04, 0x02, 0x0a] + self.myid, sid[0:8], \
                     sid[8:10] + [0x00, 0x00, 0x00, 0x00, 0x00, 0x00], \
                     [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]])
                 
@@ -217,8 +224,8 @@ class Garmin(EasyAnt):
                 
             else:
                 
-                self.send_burst_transfer(0x00, [\
-                    [0x44, 0x04, 0x03, 0x08] + self.myid, self.auth, \
+                self.channel.send_burst_transfer(\
+                    [[0x44, 0x04, 0x03, 0x08] + self.myid, self.auth, \
                     [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]])
                     
                 self.state = Garmin.State.AUTHENTICATING
@@ -242,7 +249,6 @@ class Garmin(EasyAnt):
                     self.download_file_done(res)
 
     def on_broadcast_data(self, data):
-        #print "broadcast data", self.state, data
         
         if self.last != data:
             _logger.debug("new state")
@@ -256,26 +262,26 @@ class Garmin(EasyAnt):
             new_data = bool(data[1] & 0b00100000)
             _logger.debug("pair %s, data %s", can_pair, new_data)
 
-            self.request_message(0x00, Message.ID.RESPONSE_CHANNEL_ID)
-            self.send_acknowledged_data(0x00, [0x44, 0x02, self.myfreq, 0x04] + self.myid)
+            self.channel.request_message(Message.ID.RESPONSE_CHANNEL_ID)
+            self.channel.send_acknowledged_data([0x44, 0x02, self.myfreq, 0x04] + self.myid)
             
             _logger.debug("\tNew period, search, rf req")
             # New period, search timeout
-            self.set_channel_period(0x00, [0x00, 0x10])
-            self.set_channel_search_timeout(0x00, 0x03)
-            self.set_channel_rf_freq(0x00, self.myfreq)
+            self.channel.set_period(4096)
+            self.channel.set_search_timeout(3)
+            self.channel.set_rf_freq(self.myfreq)
             
             self.state = Garmin.State.NEWFREQUENCY
         
         elif self.state == Garmin.State.NEWFREQUENCY:
             _logger.debug("talking on new frequency")
-            self.send_acknowledged_data(0x00, [0x44, 0x04, 0x01, 0x00] + self.myid)
+            self.channel.send_acknowledged_data([0x44, 0x04, 0x01, 0x00] + self.myid)
             
             self.state = Garmin.State.REQUESTID
         
         elif self.state == Garmin.State.FETCH:
-            self.send_burst_transfer(0x00, [\
-                [0x44, 0x0a, 0xfe, 0xff, 0x10, 0x00, 0x00, 0x00], \
+            self.channel.send_burst_transfer(\
+                [[0x44, 0x0a, 0xfe, 0xff, 0x10, 0x00, 0x00, 0x00], \
                 [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]])
             print "Downloading index..."
             self.fs.download_index()
@@ -286,17 +292,17 @@ class Garmin(EasyAnt):
         self.last = data
 
 
-    def gogo(self):
+    def start(self):
         
         try:
             self.init()
-            self.gofix()
         except KeyboardInterrupt:
+            node.stop()
             sys.exit(1)
         except Exception:
             traceback.print_exc()
         finally:
-            self.stop()
+            self.node.stop()
             sys.exit()
 
 
@@ -307,13 +313,13 @@ def main():
     logger.setLevel(logging.DEBUG)
     handler = logging.FileHandler("garmin.log", "w")
     #handler = logging.StreamHandler()
-    handler.setFormatter(logging.Formatter(fmt='%(asctime)s  %(name)-15s  %(levelname)-8s  %(message)s'))
+    handler.setFormatter(logging.Formatter(fmt='%(threadName)-10s %(asctime)s  %(name)-15s  %(levelname)-8s  %(message)s'))
     logger.addHandler(handler)
 
     g = Garmin()
-    g.gogo()
-
+    g.start()
 
 
 if __name__ == "__main__":
     sys.exit(main())
+
