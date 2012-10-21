@@ -127,10 +127,10 @@ class Manager:
             self._data = array.array('B')
             self._object = None
 
-    def __init__(self, ant):
-        self._state  = Manager.State.NONE
-        self._object = None
-        self._ant    = ant
+    def __init__(self, channel):
+        self._state   = Manager.State.NONE
+        self._object  = None
+        self._channel = channel
 
     def download_index(self):
         self._state = Manager.State.DOWNLOADING
@@ -147,8 +147,8 @@ class Manager:
         self._object = Manager.DownloadInfo(index)
 
         _logger.debug("Request download of file with index %d", self._object._index)
-        self._ant.send_burst_transfer(0x00, [\
-            [0x44, 0x09,  self._object._index, 0x00, 0x00, 0x00, 0x00, 0x00], \
+        self._channel.send_burst_transfer(
+            [[0x44, 0x09,  self._object._index, 0x00, 0x00, 0x00, 0x00, 0x00], \
             [0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]])
 
     def on_data(self, data):
@@ -183,8 +183,8 @@ class Manager:
                 _logger.debug("File %r continue from %d", self._object, packet._got + packet._left)
                 # Start next request at index
                 nextPart = list(map(ord, struct.pack("<I", packet._got + packet._left)))
-                self._ant.send_burst_transfer(0x00, [\
-                    [0x44, 0x09, self._object._index, 0x00] + nextPart, \
+                self._channel.send_burst_transfer(
+                    [[0x44, 0x09, self._object._index, 0x00] + nextPart, \
                     [0x00, 0x00] + packet._checksum.tolist() + [0x00, 0x00, 0x00, 0x00]])
 
         return None
