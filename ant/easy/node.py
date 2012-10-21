@@ -24,7 +24,8 @@ import collections
 import threading
 import logging
 
-from ..base import Ant, Message
+from ant.base.ant import Ant
+from ant.base.message import Message
 from ant.easy.channel import Channel
 from ant.easy.filter import wait_for_event, wait_for_response, wait_for_special
 
@@ -48,7 +49,6 @@ class Node(threading.Thread):
         def response_function(channel, event, data):
             _logger.debug("response function %r", (channel, event, data))
             if channel != None and event != Message.ID.RESET_SYSTEM and event != Message.ID.SET_NETWORK_KEY:
-                print self.channels
                 self.channels[channel]._response(event, data)
             else:
                 self._responses_cond.acquire()
@@ -60,8 +60,10 @@ class Node(threading.Thread):
         def channel_event_function(channel, event, data):
             _logger.debug("channel event function %r", (channel, event, data))
             if channel != None:
-                print self.channels
-                self.channels[channel]._response(event, data)
+                if channel in self.channels:
+                    self.channels[channel]._event(event, data)
+                else:
+                    _logger.warning("ignoring message to nonexsting channel %d", channel)
             else:
                 self._event_cond.acquire()
                 self._events.append((channel, event, data))

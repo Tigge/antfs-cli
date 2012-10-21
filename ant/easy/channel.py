@@ -24,7 +24,7 @@ import collections
 import threading
 import logging
 
-from ..base import Message
+from ant.base.message import Message
 from ant.easy.exception import TransferFailedException
 from ant.easy.filter import wait_for_event, wait_for_response, wait_for_special
 
@@ -52,18 +52,25 @@ class Channel():
         self._events         = collections.deque()
 
     def _response(self, event, data):
-        _logger.warning("Response, Channel %x, %x: %s", self.id, event, str(data))
+        _logger.debug("Response, Channel %x, %x: %s", self.id, event, str(data))
         self._responses_cond.acquire()
         self._responses.append((self.id, event, data))
         self._responses_cond.notify()
         self._responses_cond.release()
     
     def _event(self, event, data):
-        _logger.warning("Event, Channel %x, %x: %s", self.id, event, str(data))
-        self._event_cond.acquire()
-        self._events.append((self.id, event, data))
-        self._event_cond.notify()
-        self._event_cond.release()
+        _logger.debug("Event, Channel %x, %x: %s", self.id, event, str(data))
+        if event == Message.Code.EVENT_RX_BURST_PACKET:
+            print "burst"
+            self.on_burst_data(data)
+        elif event == Message.Code.EVENT_RX_BROADCAST:
+            print "broadcast", self.on_broadcast_data, data
+            self.on_broadcast_data(data)
+        else:
+            self._event_cond.acquire()
+            self._events.append((self.id, event, data))
+            self._event_cond.notify()
+            self._event_cond.release()
 
     def wait_for_event(self, ok_codes):
         return wait_for_event(ok_codes, self._events, self._event_cond)

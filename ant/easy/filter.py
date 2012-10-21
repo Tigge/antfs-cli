@@ -22,7 +22,7 @@
 
 import logging
 
-from ..base import Message
+from ant.base.message import Message
 from ant.easy.exception import AntException, TransferFailedException
 
 _logger = logging.getLogger("garmin.ant.easy.filter")
