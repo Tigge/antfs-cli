@@ -42,44 +42,19 @@ class Channel():
         UNIDIRECTIONAL_RECEIVE_ONLY   = 0x40
         UNIDIRECTIONAL_TRANSMIT_ONLY  = 0x50
     
-    def __init__(self, id, ant):
+    def __init__(self, id, node, ant):
         self.id  = id
+        self._node = node
         self._ant = ant
-        
-        self._responses_cond = threading.Condition()
-        self._responses      = collections.deque()
-        self._event_cond     = threading.Condition()
-        self._events         = collections.deque()
-
-    def _response(self, event, data):
-        _logger.debug("Response, Channel %x, %x: %s", self.id, event, str(data))
-        self._responses_cond.acquire()
-        self._responses.append((self.id, event, data))
-        self._responses_cond.notify()
-        self._responses_cond.release()
-    
-    def _event(self, event, data):
-        _logger.debug("Event, Channel %x, %x: %s", self.id, event, str(data))
-        if event == Message.Code.EVENT_RX_BURST_PACKET:
-            print "burst"
-            self.on_burst_data(data)
-        elif event == Message.Code.EVENT_RX_BROADCAST:
-            print "broadcast", self.on_broadcast_data, data
-            self.on_broadcast_data(data)
-        else:
-            self._event_cond.acquire()
-            self._events.append((self.id, event, data))
-            self._event_cond.notify()
-            self._event_cond.release()
 
     def wait_for_event(self, ok_codes):
-        return wait_for_event(ok_codes, self._events, self._event_cond)
+        return wait_for_event(ok_codes, self._node._events, self._node._event_cond)
 
     def wait_for_response(self, event_id):
-        return wait_for_response(event_id, self._responses, self._responses_cond)
+        return wait_for_response(event_id, self._node._responses, self._node._responses_cond)
 
     def wait_for_special(self, event_id):
-        return wait_for_special(event_id, self._responses, self._responses_cond)
+        return wait_for_special(event_id, self._node._responses, self._node._responses_cond)
 
     def _assign(self, channelType, networkNumber):
         self._ant.assign_channel(self.id, channelType, networkNumber)
@@ -136,7 +111,7 @@ class Channel():
         try:
             #self._last_call = (self.send_burst_transfer, [self.id, data])
             _logger.debug("send burst transfer %s", self.id)
-            self._ant.send_burst_transfer(self, self.id, data)
+            self._ant.send_burst_transfer(self.id, data)
             self.wait_for_event([Message.Code.EVENT_TRANSFER_TX_START])
             self.wait_for_event([Message.Code.EVENT_TRANSFER_TX_COMPLETED])
             _logger.debug("done sending burst transfer %s", self.id)

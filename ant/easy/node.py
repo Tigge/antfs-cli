@@ -23,6 +23,7 @@
 import collections
 import threading
 import logging
+import Queue
 
 from ant.base.ant import Ant
 from ant.base.message import Message
@@ -31,56 +32,29 @@ from ant.easy.filter import wait_for_event, wait_for_response, wait_for_special
 
 _logger = logging.getLogger("garmin.ant.easy.node")
 
-class Node(threading.Thread):
+class Node():
     
     def __init__(self, idVendor, idProduct):
-        
-        threading.Thread.__init__(self)
         
         self._responses_cond = threading.Condition()
         self._responses      = collections.deque()
         self._event_cond     = threading.Condition()
         self._events         = collections.deque()
         
+        self._datas = Queue.Queue()
+        
         self.channels = {}
         
         self.ant = Ant(idVendor, idProduct)
         
-        def response_function(channel, event, data):
-            _logger.debug("response function %r", (channel, event, data))
-            if channel != None and event != Message.ID.RESET_SYSTEM and event != Message.ID.SET_NETWORK_KEY:
-                self.channels[channel]._response(event, data)
-            else:
-                self._responses_cond.acquire()
-                self._responses.append((channel, event, data))
-                self._responses_cond.notify()
-                self._responses_cond.release()
-        self.ant.response_function = response_function
+        self._running = True
         
-        def channel_event_function(channel, event, data):
-            _logger.debug("channel event function %r", (channel, event, data))
-            if channel != None:
-                if channel in self.channels:
-                    self.channels[channel]._event(event, data)
-                else:
-                    _logger.warning("ignoring message to nonexsting channel %d", channel)
-            else:
-                self._event_cond.acquire()
-                self._events.append((channel, event, data))
-                self._event_cond.notify()
-                self._event_cond.release()
-
-        self.ant.channel_event_function = channel_event_function
-        
-        self.ant.start()
-        
-        # TODO: check capabilities
+        self._worker_thread = threading.Thread(target=self._worker, name="ant.easy")
+        self._worker_thread.start()
 
     def new_channel(self, ctype):
-        channel = Channel(0, self.ant)
-        print "New channel: " + str(channel)
+        channel = Channel(0, self, self.ant)
         self.channels[0] = channel
-        print "Channel list: " + str(self.channels)
         channel._assign(ctype, 0x00)
         return channel
 
@@ -107,50 +81,53 @@ class Node(threading.Thread):
     def wait_for_special(self, event_id):
         return wait_for_special(event_id, self._responses, self._responses_cond)
 
-    def get_event(self):
-        print "getevent"
-        if self._event_cond.acquire(False):
-            print "ge - acquired"
-            if len(self._events) == 0:
-                print "ge - waiting"
-                self._event_cond.wait()
-            print "ge - popping"
-            message = self._events.popleft()
-            print "ge - releasing"
-            self._event_cond.release()
-            return message
+    def _worker_response(self, channel, event, data):
+        self._responses_cond.acquire()
+        self._responses.append((channel, event, data))
+        self._responses_cond.notify()
+        self._responses_cond.release()
+
+    def _worker_event(self, channel, event, data):
+        if event == Message.Code.EVENT_RX_BURST_PACKET:
+            self._datas.put(('burst', channel, data))
+        elif event == Message.Code.EVENT_RX_BROADCAST:
+            self._datas.put(('broadcast', channel, data))
         else:
-            print "ge - not acquired"
-            return None
+            self._event_cond.acquire()
+            self._events.append((channel, event, data))
+            self._event_cond.notify()
+            self._event_cond.release()
 
-    def run(self):
-        pass
-#        while True:
-#        
-#            try:
-#                (channel, event, data) = self.get_event()
-#            except TypeError:
-#                _logger.debug("npk")
-#                continue
-#            print "gofix", channel, event, data
-#            if event == Message.Code.EVENT_RX_BURST_PACKET:
-#                self.on_burst_data(data)
-#            elif event == Message.Code.EVENT_RX_BROADCAST:
-#                self.on_broadcast_data(data)
-#            else:
-#                # TODO: we should not really ignore this...
-#                if data[0] == Message.Code.EVENT_RX_FAIL:
-#                    _logger.warning("Got EVENT_RX_FAIL, continuing...")
-#                    continue
-#                _logger.warning("UNHANDLED EVENT %s, %d:%s", channel, event,
-#                        Message.Code.lookup(data[0]))
-#                _logger.warning("           DATA %s", data)
-#                raise Exception("Unhandled event " + str(data[0])
-#                        + ":" + Message.Code.lookup(data[0]))
+    def _worker(self):
+        self.ant.response_function = self._worker_response
+        self.ant.channel_event_function = self._worker_event
+        
+        # TODO: check capabilities
+        self.ant.start()
+        
+    def _main(self):
+        while self._running:
+            try:
+                (data_type, channel, data) = self._datas.get(True, 1.0)
+                self._datas.task_done()
+                
+                if data_type == 'broadcast':
+                    self.channels[channel].on_broadcast_data(data)
+                elif data_type == 'burst':
+                    self.channels[channel].on_burst_data(data)
+                else:
+                    _logger.warning("Unknown data type '%s': %r", data_type, data)
+            except Queue.Empty as e:
+                pass
 
-    def on_burst_data(self, data):
-        pass
-    
-    def on_broadcast_data(self, data):
-        pass
+    def start(self):
+        self._main()
+
+    def stop(self):
+        if self._running:
+            _logger.debug("Stoping ant.easy")
+            self._running = False
+            self.ant.stop()
+            self._worker_thread.join()
+
 
