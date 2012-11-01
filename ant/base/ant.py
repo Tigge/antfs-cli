@@ -316,11 +316,13 @@ class Ant():
         self.write_message(message)
 
     def request_message(self, channel, messageId):
-        message = Message(Message.ID.REQUEST_MESSAGE, [0x00, messageId])
+        message = Message(Message.ID.REQUEST_MESSAGE, [channel, messageId])
         self.write_message(message)
 
-    def send_acknowledged_data(self, channel, broadcastData):
-        message = Message(Message.ID.ACKNOWLEDGE_DATA, [0x00] + broadcastData)
+    def send_acknowledged_data(self, channel, data):
+        assert len(data) == 8
+        data.insert(0, channel)
+        message = Message(Message.ID.ACKNOWLEDGE_DATA, data)
         self.write_message_timeslot(message)
 
     def send_burst_transfer_packet(self, channelSeq, data, first):
