@@ -20,7 +20,18 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
+import errno
 import os
+
+def makedirs_if_not_exists(path):
+    try:
+        os.makedirs(path)
+    except OSError as e:
+        if e.errno == errno.EEXIST:
+            pass
+        else: 
+            raise
+
 
 class XDGError(Exception):
     
