@@ -326,17 +326,23 @@ class Ant():
         self.write_message_timeslot(message)
 
     def send_burst_transfer_packet(self, channelSeq, data, first):
-        message = Message(Message.ID.BURST_TRANSFER_DATA, [channelSeq] + data)
+        assert len(data) == 8
+        data.insert(0, channelSeq)
+        message = Message(Message.ID.BURST_TRANSFER_DATA, data)
         self.write_message_timeslot(message)
 
     def send_burst_transfer(self, channel, data):
+        assert len(data) % 8 == 0
         _logger.debug("Send burst transfer, chan %s, data %s", channel, data)
-        for i in range(len(data)):
+        packets = len(data) / 8
+        for i in range(packets):
             sequence = i % 4
-            if i == len(data) - 1:
+            if i == packets - 1:
                 sequence = sequence | 0b100
             channelSeq = channel | sequence << 5
-            self.send_burst_transfer_packet(channelSeq, data[i], first=i==0)
+            packet_data = data[i * 8:i * 8 + 8]
+            _logger.debug("Send burst transfer, packet %d, data %s", i, packet_data)
+            self.send_burst_transfer_packet(channelSeq, packet_data, first=i==0)
 
     def response_function(self, channel, event, data):
         pass
