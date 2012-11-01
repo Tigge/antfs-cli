@@ -139,18 +139,17 @@ class Ant():
         channel  = message._data[0] & 0b00011111
         data     = message._data[1:]
         
-        self._burst_data.extend(data)
-        
+        # First sequence
+        if sequence == 0:
+            self._burst_data = data
+        # Other
+        else:
+            self._burst_data.extend(data)
+
         # Last sequence (indicated by bit 3)
         if sequence & 0b100 != 0:
             self._events.put(('event', (channel,
                     Message.Code.EVENT_RX_BURST_PACKET, self._burst_data)))
-            self._burst_data = array.array('B', [])
-        # Normal sequence
-        else:
-            #print "sequence", sequence, message._data[0]
-            #assert sequence == burst_seq + 1 or (sequence == 0 and burst_seq & 0b100) or (sequence == 1 and burst_seq == 3)
-            return
 
     def _worker(self):
 
