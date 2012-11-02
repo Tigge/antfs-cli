@@ -223,7 +223,7 @@ class Application:
                 AuthenticateCommand.Request.SERIAL,
                 self._serial_number))
         response = self._get_command()
-        return response.get_data_string()
+        return (response.get_serial(), response.get_data_string())
 
     def authentication_passkey(self, passkey):
         self._send_command(AuthenticateCommand(

@@ -100,8 +100,7 @@ class Garmin(Application):
 
     def on_authentication(self, beacon):
         print "on authentication"
-        self.serial  = beacon.get_serial()
-        self.name    = self.authentication_serial()
+        self.serial, self.name = self.authentication_serial()
         self.passkey = self.read_passkey(self.serial)
         print self.name, self.serial, self.passkey
         
