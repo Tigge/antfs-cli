@@ -249,7 +249,7 @@ class Application:
                 AuthenticateCommand.Request.PAIRING,
                 self._serial_number, data))
 
-        response = self._get_command()
+        response = self._get_command(30)
         if response._get_argument("type") == AuthenticateResponse.Response.ACCEPT:
             return response.get_data_array()
         else:
