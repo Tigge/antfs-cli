@@ -191,20 +191,26 @@ class Application:
         crc     = 0
         data    = array.array('B')
         while True:
+            _logger.debug("Download %d, o%d, c%d", index, offset, crc)
             self._send_command(DownloadRequest(index, offset, True, crc))
-            response = self._get_command()
-            if isinstance(response, DownloadResponse):
-                remaining    = response._get_argument("remaining")
-                offset       = response._get_argument("offset")
-                total        = offset + remaining
-                data[offset:total] = response._get_argument("data")[:remaining]
-                #print "rem", remaining, "offset", offset, "total", total, "size", response._get_argument("size")
-                if total == response._get_argument("size"):
-                    return data
-                crc = response._get_argument("crc")
-                offset = total
-            else:
-                raise AntFSDownloadException()
+            _logger.debug("Wait for response...")
+            try:
+                response = self._get_command()
+                if isinstance(response, DownloadResponse):
+                    remaining    = response._get_argument("remaining")
+                    offset       = response._get_argument("offset")
+                    total        = offset + remaining
+                    data[offset:total] = response._get_argument("data")[:remaining]
+                    #print "rem", remaining, "offset", offset, "total", total, "size", response._get_argument("size")
+                    if total == response._get_argument("size"):
+                        return data
+                    crc = response._get_argument("crc")
+                    offset = total
+                else:
+                    raise AntFSDownloadException()
+            except Queue.Empty:
+                _logger.debug("Download %d timeout", index)
+                #print "recover from download failure"
     
     def download_directory(self):
         data = self.download(0)
