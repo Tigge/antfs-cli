@@ -185,7 +185,7 @@ class Application:
     def upload(self, index, data):
         pass
     
-    def download(self, index):
+    def download(self, index, callback=None):
         offset  = 0
         initial = True
         crc     = 0
@@ -202,6 +202,8 @@ class Application:
                     total        = offset + remaining
                     data[offset:total] = response._get_argument("data")[:remaining]
                     #print "rem", remaining, "offset", offset, "total", total, "size", response._get_argument("size")
+                    if callback != None:
+                        callback(float(total) / float(response._get_argument("size")))
                     if total == response._get_argument("size"):
                         return data
                     crc = response._get_argument("crc")
@@ -212,8 +214,8 @@ class Application:
                 _logger.debug("Download %d timeout", index)
                 #print "recover from download failure"
     
-    def download_directory(self):
-        data = self.download(0)
+    def download_directory(self, callback=None):
+        data = self.download(0, callback)
         return Directory.parse(data)
 
     def link(self):
