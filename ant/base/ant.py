@@ -320,14 +320,14 @@ class Ant():
 
     def send_acknowledged_data(self, channel, data):
         assert len(data) == 8
-        data.insert(0, channel)
-        message = Message(Message.ID.ACKNOWLEDGE_DATA, data)
+        message = Message(Message.ID.ACKNOWLEDGE_DATA,
+                          array.array('B', [channel]) + data)
         self.write_message_timeslot(message)
 
-    def send_burst_transfer_packet(self, channelSeq, data, first):
+    def send_burst_transfer_packet(self, channel_seq, data, first):
         assert len(data) == 8
-        data.insert(0, channelSeq)
-        message = Message(Message.ID.BURST_TRANSFER_DATA, data)
+        message = Message(Message.ID.BURST_TRANSFER_DATA,
+                          array.array('B', [channel_seq]) + data)
         self.write_message_timeslot(message)
 
     def send_burst_transfer(self, channel, data):
@@ -338,10 +338,10 @@ class Ant():
             sequence = i % 4
             if i == packets - 1:
                 sequence = sequence | 0b100
-            channelSeq = channel | sequence << 5
+            channel_seq = channel | sequence << 5
             packet_data = data[i * 8:i * 8 + 8]
             _logger.debug("Send burst transfer, packet %d, data %s", i, packet_data)
-            self.send_burst_transfer_packet(channelSeq, packet_data, first=i==0)
+            self.send_burst_transfer_packet(channel_seq, packet_data, first=i==0)
 
     def response_function(self, channel, event, data):
         pass
