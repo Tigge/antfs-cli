@@ -132,12 +132,19 @@ class Garmin(Application):
         if os.path.exists(path):
             print "Skipping", name
         else:
-            print "Downloading", name,
+            sys.stdout.write("Downloading " + name + " [")
             sys.stdout.flush()
-            data = self.download(fil.get_index())
+            def callback(new_progress):
+                diff = int(new_progress * 10.0) - int(callback.progress * 10.0)
+                sys.stdout.write("." * diff)
+                sys.stdout.flush()
+                callback.progress = new_progress
+            callback.progress = 0.0
+            data = self.download(fil.get_index(), callback)
             with open(path, "w") as fd:
                 data.tofile(fd)
-            print "Done!"
+            sys.stdout.write("]\n")
+            sys.stdout.flush()
             
             self.scriptr.run_download(path)
 
