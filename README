@@ -1,12 +1,3 @@
-Important Notes
-==============================================================================
-
-This program is in a very early state and should probably not be used by
-anyone except people who want to help with development. The FIT files it
-produces are sometimes padded with NULL making them hard to use with other
-program. There is also close to no error checking. I'm only making this
-available early due to interest.
-
 Requirements
 ==============================================================================
 
@@ -23,19 +14,29 @@ Requirements
 Supported devices
 ==============================================================================
 
- - Forerunner 610
- - Forerunner 910XT
+Any compliant ANT-FS device should in theory work. Users of these device have
+been able to download data of their watches:
+
+ - Garmin Forerunner 60
+ - Garmin Forerunner 405CX
+ - Garmin Forerunner 310XT
+ - Garmin Forerunner 610
+ - Garmin Forerunner 910XT
+
+It's possible that other manufactures using ANT+/ANT-FS, such as Suunto and
+Timex might work, but have *never* been tested as far as I know. Please let
+me know if you have any success with devices that are not listed here.
 
 Usage
 ==============================================================================
 
 Usage: python garmin.py
 
-This program extracts all activity FIT files from a Garmin Forerunner 610
-watch and writes them to a folder (see file locations below). The first time
-it runs it attempts to sync with the watch. This produces an authfile which
-is written to the same folder. On startup this program will try to read that
-file to avoid having to re-sync.
+This program extracts all activity FIT files from a device and writes them
+to a folder (see file locations below). The first time it runs it attempts
+to sync with the watch. This produces an authfile which is written to the
+same folder. On startup this program will try to read that file to avoid
+having to re-sync.
 
 File locations
 ==============================================================================
