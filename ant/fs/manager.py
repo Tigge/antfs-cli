@@ -82,8 +82,6 @@ class Application:
         
         self.setup_channel(self._channel)
         
-        print "Searching..."
-
         self._worker_thread =threading.Thread(target=self._worker, name="ant.fs")
         self._worker_thread.start()
 

@@ -337,6 +337,7 @@ _classes = {
     Command.Type.UPLOAD_DATA_RESPONSE:  UploadDataResponse}
 
 def parse(data):
+    _logger.debug("parsing data %r", data)
     mark, command_type  = struct.unpack("<BB", data[0:2])
     assert mark == 0x44
     command_class = _classes[command_type]

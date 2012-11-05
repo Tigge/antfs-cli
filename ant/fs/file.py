@@ -45,7 +45,6 @@ class Directory:
     def parse(data):
         _logger.debug("Parse '%s' as directory", data)
 
-        print data, len(data), len(data[:16]), struct.calcsize("<BBB5xII"), type(data), type(data[:16])
         # Header
         version, structure_length, time_format, current_system_time, \
             last_modified = struct.unpack("<BBB5xII", data[:16])

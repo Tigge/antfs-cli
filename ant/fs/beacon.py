@@ -48,7 +48,6 @@ class Beacon:
         return self._status_byte_2 & 0x0f # 0b00001111, TODO
 
     def get_serial(self):
-        print self._descriptor, type(self._descriptor), len(self._descriptor)
         return struct.unpack("<I", self._descriptor)[0]
 
     def get_descriptor(self):
