@@ -81,7 +81,7 @@ class Garmin(Application):
         
         with open(os.path.join(path, "authfile"), 'wb') as f:
             passkey.tofile(f)
-            _logger.debug("wrote authfile:", serial, passkey)
+            _logger.debug("wrote authfile: %r, %r", serial, passkey)
 
     def setup_channel(self, channel):
         channel.set_period(4096)
@@ -90,19 +90,21 @@ class Garmin(Application):
         channel.set_search_waveform([0x53, 0x00])
         channel.set_id(0, 0x01, 0)
         
-        print "Open channel..."
         channel.open()
         #channel.request_message(Message.ID.RESPONSE_CHANNEL_STATUS)
+        print "Searching..."
 
     def on_link(self, beacon):
-        print "on link"
+        _logger.debug("on link, %r, %r", beacon.get_serial(),
+                      beacon.get_descriptor())
         self.link()
 
     def on_authentication(self, beacon):
-        print "on authentication"
+        _logger.debug("on authentication")
         self.serial, self.name = self.authentication_serial()
         self.passkey = self.read_passkey(self.serial)
-        print self.name, self.serial, self.passkey
+        print "Authenticating with", self.name, "(" + str(self.serial) + ")"
+        _logger.debug("serial %s, %r, %r", self.name, self.serial, self.passkey)
         
         if self.passkey != None:
             self.authentication_passkey(self.passkey)
@@ -111,7 +113,7 @@ class Garmin(Application):
             self.write_passkey(self.serial, self.passkey)
 
     def on_transport(self, beacon):
-        print "on transport"
+
         directory = self.download_directory()
         
         for fil in directory.get_files()[2:]:
