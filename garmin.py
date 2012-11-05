@@ -116,39 +116,56 @@ class Garmin(Application):
 
         directory = self.download_directory()
         
-        for fil in directory.get_files()[2:]:
-            print " - {0}:\t{1}\t{2}\t{3}".format(fil.get_index(),
-                    fil.get_type(), fil.get_size(), fil.get_date())
-        
-        for fil in directory.get_files()[2:]:
+        local_files  = os.listdir(os.path.join(self.config_dir,
+                str(self.serial), "activities"))
+        remote_files = directory.get_files()[2:]
+
+        downloading = filter(lambda fil: self.get_filename(fil)
+                             not in local_files, remote_files)
+        uploading   = filter(lambda name: name not in map(self.get_filename,
+                             remote_files), local_files)
+
+        print "Downloading", len(downloading), "file(s)"
+        # TODO "and uploading", len(uploading), "file(s)"
+
+        # Download missing files:
+        for fil in downloading:
             self.download_file(fil)
+        
+        # Upload missing files:
+        for fil in uploading:
+            # TODO
+            pass
+
+
+    def get_filename(self, fil):
+        return str.format("{0}-{1:02x}-{2}.fit",
+                fil.get_date().strftime("%Y-%m-%d_%H-%M-%S"),
+                fil.get_type(), fil.get_size())
+
+    def get_filepath(self, fil):
+        return os.path.join(self.config_dir, str(self.serial),
+                "activities", self.get_filename(fil))
+
 
     def download_file(self, fil):
 
-        name = str.format("{0}-{1:02x}-{2}.fit",
-                fil.get_date().strftime("%Y-%m-%d_%H-%M-%S"),
-                fil.get_type(), fil.get_size())
-        path = os.path.join(self.config_dir, str(self.serial),
-                "activities", name)
+        sys.stdout.write("Downloading " + self.get_filename(fil) + " [")
+        sys.stdout.flush()
+        def callback(new_progress):
+            diff = int(new_progress * 10.0) - int(callback.progress * 10.0)
+            sys.stdout.write("." * diff)
+            sys.stdout.flush()
+            callback.progress = new_progress
+        callback.progress = 0.0
+        data = self.download(fil.get_index(), callback)
+        with open(self.get_filepath(fil), "w") as fd:
+            data.tofile(fd)
+        sys.stdout.write("]\n")
+        sys.stdout.flush()
+        
+        self.scriptr.run_download(self.get_filepath(fil))
 
-        if os.path.exists(path):
-            print "Skipping", name
-        else:
-            sys.stdout.write("Downloading " + name + " [")
-            sys.stdout.flush()
-            def callback(new_progress):
-                diff = int(new_progress * 10.0) - int(callback.progress * 10.0)
-                sys.stdout.write("." * diff)
-                sys.stdout.flush()
-                callback.progress = new_progress
-            callback.progress = 0.0
-            data = self.download(fil.get_index(), callback)
-            with open(path, "w") as fd:
-                data.tofile(fd)
-            sys.stdout.write("]\n")
-            sys.stdout.flush()
-            
-            self.scriptr.run_download(path)
 
 def main():
 
