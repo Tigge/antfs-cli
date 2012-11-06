@@ -20,6 +20,7 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
+import errno
 import os
 import subprocess
 import threading
@@ -28,6 +29,10 @@ class Runner:
 
     def __init__(self, directory):
         self.directory = directory
+        
+        # TODO: loop over scripts, check if they are runnable, warn
+        #       then don't warn at runtime.
+
 
     def get_scripts(self):
         scripts = []
@@ -38,8 +43,12 @@ class Runner:
 
     def _run_action(self, action, filename):
         for script in self.get_scripts():
-            subprocess.call([os.path.join(self.directory, script),
-                             action, filename])
+            try:
+                subprocess.call([os.path.join(self.directory, script),
+                                 action, filename])
+            except OSError as e:
+                print " - Could not run", script, "-",\
+                      errno.errorcode[e.errno], os.strerror(e.errno)
 
     def run_action(self, action, filename):
         t = threading.Thread(target=self._run_action, args=(action, filename))
