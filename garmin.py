@@ -22,9 +22,10 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-from ant.base import Message
-from ant.easy import EasyAnt
-import ant.fs
+#from ant.base import Message
+#from ant.easy.node import Node, Message
+#from ant.easy.channel import Channel
+from ant.fs.manager import Application, AntFSAuthenticationException
 
 import utilities
 import scripting
@@ -44,287 +45,142 @@ PRODUCT_NAME = "garmin-extractor"
 
 _logger = logging.getLogger("garmin")
 
-class Garmin(EasyAnt):
+class Garmin(Application):
 
-    class State:
-        INITIALIZING   = 0
-        SEARCHING      = 1
-        PAIRING        = 2
-        NEWFREQUENCY   = 3
-        REQUESTID      = 4
-        AUTHENTICATING = 5
-        FETCH          = 6
-        FS             = 7
+    ID_VENDOR  = 0x0fcf
+    ID_PRODUCT = 0x1008
+
+    PRODUCT_NAME = "garmin-extractor"
 
     def __init__(self):
-        # Create Ant
-        EasyAnt.__init__(self, ID_VENDOR, ID_PRODUCT)
-        #self.start()
-        
-        self.state = Garmin.State.INITIALIZING
-        
-        self.myid     = [0xff, 0xff, 0xff, 0xff]
-        self.auth     = [0xee, 0xee, 0xee, 0xee, 0xee, 0xee, 0xee, 0xee]
-        self.pair     = True
-        self.myfreq   = 0x19
-        
-        self.last     = array.array("B")
+        Application.__init__(self)
         
         _logger.debug("Creating directories")
-        self.create_directories()
-        self.fs       = ant.fs.Manager(self)
+        self.config_dir = utilities.XDG(self.PRODUCT_NAME).get_config_dir()
+        self.script_dir = os.path.join(self.config_dir, "scripts")
+        utilities.makedirs_if_not_exists(self.config_dir)
+        utilities.makedirs_if_not_exists(self.script_dir)
         
         self.scriptr  = scripting.Runner(self.script_dir)
 
-    def create_directories(self):
-        xdg = utilities.XDG(PRODUCT_NAME)
-        self.config_dir = xdg.get_config_dir()
-        self.script_dir = os.path.join(self.config_dir, "scripts")
-        if not os.path.exists(self.config_dir):
-            os.makedirs(self.config_dir)
-        if not os.path.exists(self.script_dir):
-            os.makedirs(self.script_dir)
+    def read_passkey(self, serial):
 
-    def read_authfile(self, unitid):
-
-        path = os.path.join(self.config_dir, str(unitid))
-        
-        with open(os.path.join(path, "authfile"), 'rb') as f:
-            d = list(struct.unpack("<4B8B", f.read()))
-            self.myid = d[0:4]
-            self.auth = d[4:12]
-            self.pair = False
-            _logger.debug("loaded authfile:")
-            _logger.debug("%s, %s, %s, %s", d, self.myid, self.auth, self.pair)
-
-    def write_authfile(self, unitid):
+        try:
+            path = os.path.join(self.config_dir, str(serial))
+            with open(os.path.join(path, "authfile"), 'rb') as f:
+                d = array.array('B', f.read())
+                _logger.debug("loaded authfile: %r", d)
+                return d
+        except:
+            return None
+            
+    def write_passkey(self, serial, passkey):
     
-        path = os.path.join(self.config_dir, str(unitid))
-        if not os.path.exists(path):
-            os.mkdir(path)
-        if not os.path.exists(os.path.join(path, "activities")):
-            os.mkdir(os.path.join(path, "activities"))
+        path = os.path.join(self.config_dir, str(serial))
+        utilities.makedirs_if_not_exists(path)
+        utilities.makedirs_if_not_exists(os.path.join(path, "activities"))
         
         with open(os.path.join(path, "authfile"), 'wb') as f:
-            f.write("".join(map(chr, self.myid)))
-            f.write("".join(map(chr, self.auth)))
-            _logger.debug("wrote authfile:")
-            _logger.debug("%s, %s, %s", self.myid, self.auth, self.pair)
+            passkey.tofile(f)
+            _logger.debug("wrote authfile: %r, %r", serial, passkey)
 
-    def init(self):
-        _logger.info("Request basic information...")
-        print "Request basic information..."
-        m = self.request_message(0x00, Message.ID.RESPONSE_VERSION)
-
-        _logger.info("  ANT version:  " + struct.unpack("<10sx", m[2])[0])
-        print "  ANT version:  ", struct.unpack("<10sx", m[2])[0]
-        m = self.request_message(0x00, Message.ID.RESPONSE_CAPABILITIES)
-
-        _logger.info("  Capabilities: " + str(m[2]))
-        print "  Capabilities: ", m[2]
-        m = self.request_message(0x00, Message.ID.RESPONSE_SERIAL_NUMBER)
-
-        _logger.info("  Serial number: " + str(struct.unpack("<I", m[2])[0]))
-        print "  Serial number:", struct.unpack("<I", m[2])[0]
+    def setup_channel(self, channel):
+        channel.set_period(4096)
+        channel.set_search_timeout(255)
+        channel.set_rf_freq(50)
+        channel.set_search_waveform([0x53, 0x00])
+        channel.set_id(0, 0x01, 0)
         
-        _logger.info("Starting system...")
-        print "Starting system..."
-        
-        NETWORK_KEY= [0xa8, 0xa4, 0x23, 0xb9, 0xf5, 0x5e, 0x63, 0xc1]
-        
-        self.reset_system()
-        self.set_network_key(0x00, NETWORK_KEY)
-        self.assign_channel(0x00, 0x00, 0x00)
-        self.set_channel_period(0x00, [0x00, 0x10])
-        self.set_channel_search_timeout(0x00, 0xff)
-        self.set_channel_rf_freq(0x00, 0x32)
-        self.set_search_waveform(0x00, [0x53, 0x00])
-        self.set_channel_id(0x00, [0x00, 0x00], 0x01, 0x00)
-        
-        _logger.info("Open channel...")
-        print "Open channel..."
-        self.open_channel(0x00)
-        self.request_message(0x00, Message.ID.RESPONSE_CHANNEL_STATUS)
-        
-        _logger.info("Searching...")
+        channel.open()
+        #channel.request_message(Message.ID.RESPONSE_CHANNEL_STATUS)
         print "Searching..."
+
+    def on_link(self, beacon):
+        _logger.debug("on link, %r, %r", beacon.get_serial(),
+                      beacon.get_descriptor())
+        self.link()
+        return True
+
+    def on_authentication(self, beacon):
+        _logger.debug("on authentication")
+        self.serial, self.name = self.authentication_serial()
+        self.passkey = self.read_passkey(self.serial)
+        print "Authenticating with", self.name, "(" + str(self.serial) + ")"
+        _logger.debug("serial %s, %r, %r", self.name, self.serial, self.passkey)
         
-        self.state = Garmin.State.SEARCHING
-
-    def get_filename(self, f):
-        file_date_time = f.get_date().strftime("%Y-%m-%d_%H-%M-%S")
-        return str.format("{0}-{1:02x}-{2}.fit", file_date_time,
-                          f.get_type(), f.get_size())
-
-    def get_filepath(self, f):
-        return os.path.join(self.config_dir, str(self.unitid), 
-               "activities", self.get_filename(f))
-
-    def download_index_done(self, index):
-        self._index = index
-        for f in self._index._files:
-
-            # Printing information to user about each file in file index.
-            _logger.info(" - " + str(f.get_index()) + ":" + str(f.get_type()) + "   " + str(f.get_size()) + "   " + str(f.get_date()))
-            print " - {0}:\t{1}\t{2}\t{3}".format(f.get_index(), f.get_type(),
-                  f.get_size(), f.get_date())
-        # Skip first two files (seems special)
-        self._index._files = self._index._files[2:]
-        self.download_file_next()
-
-    def download_file_next(self):
-        if len(self._index._files) > 0:
-            f = self._index._files.pop(0)
-            if os.path.exists(self.get_filepath(f)):
-                _logger.info("Skipping " + self.get_filename(f)) 
-                print "Skipping", self.get_filename(f)
-                self.download_file_next()
-            else:
-                _logger.info("Downloading " + self.get_filename(f)) 
-                print "Downloading", self.get_filename(f),
-                sys.stdout.flush()
-                self.fs.download(f)
-        else:
-            _logger.info("Done!") 
-            print "Done!"
-            sys.exit(0)
-
-    def download_file_done(self, f):
-        with open(self.get_filepath(f), "w") as fd:
-            f.get_data().tofile(fd)
-        
-        _logger.info("File transfer completed")
-        print "- File transfer completed"
-        
-        self.scriptr.run_download(self.get_filepath(f))
-        
-        self.download_file_next()
-
-    def on_burst_data(self, data):
-        #print "burst data", self.state, data
-        
-        if self.state == Garmin.State.REQUESTID:
-            _logger.debug("%d, %d, %s", len(data), len(data[11:]), data[11:])
-            (strlen, unitid) = struct.unpack("<11xBI", data[:16])
-            name             = data[16:16 + strlen].tostring()
-
-            _logger.info("String length: " + str(strlen))
-            print "String length: ", strlen
-
-            _logger.info("Unit ID: " + str(unitid))
-            print "Unit ID:       ", unitid
-
-            _logger.info("Product name: " + str(name))
-            print "Product name:  ", name
-                
-            self.unitid = unitid
-            
+        if self.passkey != None:
             try:
-                self.read_authfile(self.unitid)
-            except:
-                if not self.pair:
-                    raise Exception("Have no authentication data, and watch is not set for initial pairing")
-            
-            #TODO, pair or resume
-            if self.pair:
-                self.send_acknowledged_data(0x00, [0x44, 0x05, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00])
-                self.request_message(0x00, Message.ID.RESPONSE_CHANNEL_STATUS)
-                
-                sid = map(ord, list(str(unitid)))
-                
-                # Identifier, sync/id?
-                self.send_burst_transfer(0x00, [\
-                    [0x44, 0x04, 0x02, 0x0a] + self.myid, sid[0:8], \
-                    sid[8:10] + [0x00, 0x00, 0x00, 0x00, 0x00, 0x00], \
-                    [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]])
-                
-                self.state = Garmin.State.PAIRING
-                
-            else:
-                
-                self.send_burst_transfer(0x00, [\
-                    [0x44, 0x04, 0x03, 0x08] + self.myid, self.auth, \
-                    [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]])
-                    
-                self.state = Garmin.State.AUTHENTICATING
+                print " - Passkey:",
+                self.authentication_passkey(self.passkey)
+                print "OK"
+                return True
+            except AntFSAuthenticationException as e:
+                print "FAILED"
+                return False
+        else:
+            try:
+                print " - Pairing:",
+                self.passkey = self.authentication_pair(self.PRODUCT_NAME)
+                self.write_passkey(self.serial, self.passkey)
+                print "OK"
+                return True
+            except AntFSAuthenticationException as e:
+                print "FAILED"
+                return False
 
-        elif self.state == Garmin.State.PAIRING:
-            _logger.debug("pairing is done")
-            self.auth = data[16:24]
-            self.write_authfile(self.unitid)
-            self.state = Garmin.State.FETCH
-        
-        elif self.state == Garmin.State.AUTHENTICATING:
-            _logger.debug("auth is done")
-            self.state = Garmin.State.FETCH
-        
-        elif self.state == Garmin.State.FS:
-            if len(data) >= 32 and data[8] == 0x44 and data[9] == 0x89:
-                res = self.fs.on_data(data)
-                if isinstance(res, ant.fs.Directory):
-                    self.download_index_done(res)
-                elif isinstance(res, ant.fs.File):
-                    self.download_file_done(res)
+    def on_transport(self, beacon):
 
-    def on_broadcast_data(self, data):
-        #print "broadcast data", self.state, data
+        directory = self.download_directory()
         
-        if self.last != data:
-            _logger.debug("new state")
-            _logger.debug(data)
-        #else:
-        #    return
-        
-        if self.state == Garmin.State.SEARCHING:
-            _logger.debug("found device")
-            can_pair = bool(data[1] & 0b00001000)
-            new_data = bool(data[1] & 0b00100000)
-            _logger.debug("pair %s, data %s", can_pair, new_data)
+        local_files  = os.listdir(os.path.join(self.config_dir,
+                str(self.serial), "activities"))
+        remote_files = directory.get_files()[2:]
 
-            self.request_message(0x00, Message.ID.RESPONSE_CHANNEL_ID)
-            self.send_acknowledged_data(0x00, [0x44, 0x02, self.myfreq, 0x04] + self.myid)
-            
-            _logger.debug("\tNew period, search, rf req")
-            # New period, search timeout
-            self.set_channel_period(0x00, [0x00, 0x10])
-            self.set_channel_search_timeout(0x00, 0x03)
-            self.set_channel_rf_freq(0x00, self.myfreq)
-            
-            self.state = Garmin.State.NEWFREQUENCY
+        downloading = filter(lambda fil: self.get_filename(fil)
+                             not in local_files, remote_files)
+        uploading   = filter(lambda name: name not in map(self.get_filename,
+                             remote_files), local_files)
+
+        print "Downloading", len(downloading), "file(s)"
+        # TODO "and uploading", len(uploading), "file(s)"
+
+        # Download missing files:
+        for fil in downloading:
+            self.download_file(fil)
         
-        elif self.state == Garmin.State.NEWFREQUENCY:
-            _logger.debug("talking on new frequency")
-            self.send_acknowledged_data(0x00, [0x44, 0x04, 0x01, 0x00] + self.myid)
-            
-            self.state = Garmin.State.REQUESTID
-        
-        elif self.state == Garmin.State.FETCH:
-            self.send_burst_transfer(0x00, [\
-                [0x44, 0x0a, 0xfe, 0xff, 0x10, 0x00, 0x00, 0x00], \
-                [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]])
-             
-            _logger.info("Downloading index...")
-            print "Downloading index..."
-            self.fs.download_index()
-            #self.send_burst_transfer(0x00, [\
-            #    [0x44, 0x09, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00], \
-            #    [0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]])
-            self.state = Garmin.State.FS
-        self.last = data
+        # Upload missing files:
+        for fil in uploading:
+            # TODO
+            pass
 
 
-    def gogo(self):
+    def get_filename(self, fil):
+        return str.format("{0}-{1:02x}-{2}.fit",
+                fil.get_date().strftime("%Y-%m-%d_%H-%M-%S"),
+                fil.get_type(), fil.get_size())
+
+    def get_filepath(self, fil):
+        return os.path.join(self.config_dir, str(self.serial),
+                "activities", self.get_filename(fil))
+
+
+    def download_file(self, fil):
+
+        sys.stdout.write("Downloading " + self.get_filename(fil) + " [")
+        sys.stdout.flush()
+        def callback(new_progress):
+            diff = int(new_progress * 10.0) - int(callback.progress * 10.0)
+            sys.stdout.write("." * diff)
+            sys.stdout.flush()
+            callback.progress = new_progress
+        callback.progress = 0.0
+        data = self.download(fil.get_index(), callback)
+        with open(self.get_filepath(fil), "w") as fd:
+            data.tofile(fd)
+        sys.stdout.write("]\n")
+        sys.stdout.flush()
         
-        try:
-            self.init()
-            self.gofix()
-        except KeyboardInterrupt:
-            sys.exit(1)
-        except Exception:
-            traceback.print_exc()
-        finally:
-            self.stop()
-            sys.exit()
+        self.scriptr.run_download(self.get_filepath(fil))
 
 
 def main():
@@ -341,12 +197,19 @@ def main():
 
     # If you add new module/logger name longer than the 15 characters just increase the value after %(name).
     # The longest module/logger name now is "garmin.ant.base" and "garmin.ant.easy".
-    handler.setFormatter(logging.Formatter(fmt='%(asctime)s  %(name)-15s  %(levelname)-8s  %(message)s (%(filename)s:%(lineno)d)'))
+    handler.setFormatter(logging.Formatter(fmt='%(threadName)-10s %(asctime)s  %(name)-15s  %(levelname)-8s  %(message)s (%(filename)s:%(lineno)d)'))
 
     logger.addHandler(handler)
 
-    g = Garmin()
-    g.gogo()
+    try:
+        g = Garmin()
+        g.start()
+    except (Exception, KeyboardInterrupt):
+        traceback.print_exc()
+        print "Interrupted"
+        g.stop()
+        sys.exit(1)
 
 if __name__ == "__main__":
     sys.exit(main())
+

@@ -25,35 +25,50 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-import sys
+import errno
 import os
 import subprocess
+import sys
 
 fittotcx = "/path/to/FIT-to-TCX/fittotcx.py"
 
-action   = sys.argv[1]
-filename = sys.argv[2]
+def main(action, filename):
 
-basedir  = os.path.split(os.path.dirname(filename))[0]
-basefile = os.path.basename(filename)
+    if action != "DOWNLOAD":
+        return 0
 
-# Create directory
-targetdir = os.path.join(basedir, "tcx")
-try:
-    os.mkdir(targetdir)
-except:
-    pass
+    basedir  = os.path.split(os.path.dirname(filename))[0]
+    basefile = os.path.basename(filename)
 
-targetfile = os.path.splitext(basefile)[0] + ".tcx"
+    # Create directory
+    targetdir = os.path.join(basedir, "tcx")
+    try:
+        os.mkdir(targetdir)
+    except:
+        pass
 
-# Run FIT-to-TCX
-process = subprocess.Popen([fittotcx, filename], stdout=subprocess.PIPE,
-                           stderr=subprocess.PIPE)
-(data, _) = process.communicate()
+    targetfile = os.path.splitext(basefile)[0] + ".tcx"
 
-# Write result
-if process.returncode == 0:
+    try:
+        # Run FIT-to-TCX
+        process = subprocess.Popen([fittotcx, filename], stdout=subprocess.PIPE,
+                                   stderr=subprocess.PIPE)
+        (data, _) = process.communicate()
+    except OSError as e:
+        print "Could not run Convert to TCX -", fittotcx, \
+              "-", errno.errorcode[e.errno], os.strerror(e.errno)
+        return -1
+
+    if process.returncode != 0:
+        print "Convert to TCX exited with error code", process.returncode
+        return -1
+
+    # Write result
     f = file(os.path.join(targetdir, targetfile), 'w')
     f.write(data)
     f.close()
+    return 0
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1], sys.argv[2]))
 

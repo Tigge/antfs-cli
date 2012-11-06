@@ -20,165 +20,25 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
+import array
+import collections
+import struct
+import threading
+import time
+import Queue
+import logging
+
 import usb.core
 import usb.util
 
-import array
-import collections
-import threading
-import logging
+from message import Message
+from commons import format_list
 
-_logger = logging.getLogger("garmin.ant.base")
+_logger = logging.getLogger("garmin.ant.base.ant")
 
-def _format_list(l):
-    return "[" + " ".join(map(lambda a: str.format("{0:02x}", a), l)) + "]"
-
-class Message:
-
-    class ID:
-        INVALID                            = 0x00
-
-        # Configuration messages
-        UNASSIGN_CHANNEL                   = 0x41
-        ASSIGN_CHANNEL                     = 0x42
-        SET_CHANNEL_ID                     = 0x51
-        SET_CHANNEL_PERIOD                 = 0x43
-        SET_CHANNEL_SEARCH_TIMEOUT         = 0x44
-        SET_CHANNEL_RF_FREQ                = 0x45
-        SET_NETWORK_KEY                    = 0x46
-        SET_TRANSMIT_POWER                 = 0x47
-        SET_SEARCH_WAVEFORM                = 0x49 # XXX: Not in official docs
-        ADD_CHANNEL_ID                     = 0x59
-        CONFIG_LIST                        = 0x5A
-        SET_CHANNEL_TX_POWER               = 0x60
-        LOW_PRIORITY_CHANNEL_SEARCH_TIMOUT = 0x63
-        SERIAL_NUMBER_SET_CHANNEL          = 0x65
-        ENABLE_EXT_RX_MESGS                = 0x66
-        ENABLE_LED                         = 0x68
-        ENABLE_CRYSTAL                     = 0x6D
-        LIB_CONFIG                         = 0x6E
-        FREQUENCY_AGILITY                  = 0x70
-        PROXIMITY_SEARCH                   = 0x71
-        CHANNEL_SEARCH_PRIORITY            = 0x75
-        #SET_USB_INFO                       = 0xff
-
-        # Notifications
-        STARTUP_MESSAGE                    = 0x6F
-        SERIAL_ERROR_MESSAGE               = 0xAE
-
-        # Control messags
-        RESET_SYSTEM                       = 0x4A
-        OPEN_CHANNEL                       = 0x4B
-        CLOSE_CHANNEL                      = 0x4C
-        OPEN_RX_SCAN_MODE                  = 0x5B
-        REQUEST_MESSAGE                    = 0x4D
-        SLEEP_MESSAGE                      = 0xC5
-
-        # Data messages
-        BROADCAST_DATA                     = 0x4E
-        ACKNOWLEDGE_DATA                   = 0x4F
-        BURST_TRANSFER_DATA                = 0x50
-
-        # Responses (from channel)
-        RESPONSE_CHANNEL                   = 0x40
-        
-        # Responses (from REQUEST_MESSAGE, 0x4d)
-        RESPONSE_CHANNEL_STATUS            = 0x52
-        RESPONSE_CHANNEL_ID                = 0x51
-        RESPONSE_VERSION                   = 0x3E
-        RESPONSE_CAPABILITIES              = 0x54
-        RESPONSE_SERIAL_NUMBER             = 0x61
-
-    class Code:
-        RESPONSE_NO_ERROR                  = 0
-
-        EVENT_RX_SEARCH_TIMEOUT            = 1
-        EVENT_RX_FAIL                      = 2
-        EVENT_TX                           = 3
-        EVENT_TRANSFER_RX_FAILED           = 4
-        EVENT_TRANSFER_TX_COMPLETED        = 5
-        EVENT_TRANSFER_TX_FAILED           = 6
-        EVENT_CHANNEL_CLOSED               = 7
-        EVENT_RX_FAIL_GO_TO_SEARCH         = 8
-        EVENT_CHANNEL_COLLISION            = 9
-        EVENT_TRANSFER_TX_START            = 10
-
-        CHANNEL_IN_WRONG_STATE             = 21
-        CHANNEL_NOT_OPENED                 = 22
-        CHANNEL_ID_NOT_SET                 = 24
-        CLOSE_ALL_CHANNELS                 = 25
-
-        TRANSFER_IN_PROGRESS               = 31
-        TRANSFER_SEQUENCE_NUMBER_ERROR     = 32
-        TRANSFER_IN_ERROR                  = 33
-
-        MESSAGE_SIZE_EXCEEDS_LIMIT         = 39
-        INVALID_MESSAGE                    = 40
-        INVALID_NETWORK_NUMBER             = 41
-        INVALID_LIST_ID                    = 48
-        INVALID_SCAN_TX_CHANNEL            = 49
-        INVALID_PARAMETER_PROVIDED         = 51
-        EVENT_SERIAL_QUE_OVERFLOW          = 52
-        EVENT_QUE_OVERFLOW                 = 53
-        NVM_FULL_ERROR                     = 64
-        NVM_WRITE_ERROR                    = 65
-        USB_STRING_WRITE_FAIL              = 112
-        MESG_SERIAL_ERROR_ID               = 174
-
-        EVENT_RX_BROADCAST                 = 1000
-        EVENT_RX_FLAG_BROADCAST            = 1001
-        EVENT_RX_ACKNOWLEDGED              = 2000
-        EVENT_RX_FLAG_ACKNOWLEDGED         = 2001
-        EVENT_RX_BURST_PACKET              = 3000
-        EVENT_RX_FLAG_BURST_PACKET         = 3001
-
-        @staticmethod
-        def lookup(event):
-            for key, value in Message.Code.__dict__.items():
-                if type(value) == int and value == event:
-                    return key
-
-    def __init__(self, mId, data):
-        self._sync     = 0xa4
-        self._length   = len(data)
-        self._id       = mId
-        self._data     = data
-        self._checksum = (self._sync ^ self._length ^ self._id
-                          ^ reduce(lambda x, y: x ^ y, data))
-
-    def __repr__(self):
-        return str.format(
-                   "<ant.base.Message {0:02x}:{1} (s:{2:02x}, l:{3}, c:{4:02x})>",
-                   self._id, _format_list(self._data), self._sync,
-                   self._length, self._checksum)
-
-    def get(self):
-        return array.array('B', [self._sync, self._length, self._id]
-                           + self._data + [self._checksum])
-
-    '''
-    Parse a message from an array
-    '''
-    @staticmethod
-    def parse(buf):
-        sync     = buf[0]
-        length   = buf[1]
-        mId      = buf[2]
-        data     = buf[3:-1]
-        checksum = buf[-1]
-
-        assert sync     == 0xa4
-        assert length   == len(data)
-        assert checksum == reduce(lambda x, y: x ^ y, buf[:-1])
-
-        return Message(mId, data)
-
-
-class Ant(threading.Thread):
+class Ant():
 
     def __init__(self, idVendor, idProduct):
-
-        threading.Thread.__init__(self)
 
         # Find USB device
         _logger.debug("USB Find device, vendor %#04x, product %#04x", idVendor, idProduct)
@@ -245,23 +105,33 @@ class Ant(threading.Thread):
         self._message_queue_cond = threading.Condition()
         self._message_queue      = collections.deque()
 
+        self._events = Queue.Queue()
+    
         self._buffer = array.array('B', [])
         self._burst_data = array.array('B', [])
         self._last_data = array.array('B', [])
 
         self._running = True
 
+        self._worker_thread = threading.Thread(target=self._worker, name="ant.base")
+        self._worker_thread.start()
+
+    def start(self):
+        self._main()
+
     def stop(self):
-        self._running = False
-        self.join()
+        if self._running:
+            _logger.debug("Stoping ant.base")
+            self._running = False
+            self._worker_thread.join()
 
     def _on_broadcast(self, message):
-        self.channel_event_function(message._data[0],
-                Message.Code.EVENT_RX_BROADCAST, message._data[1:])
+        self._events.put(('event', (message._data[0],
+                Message.Code.EVENT_RX_BROADCAST, message._data[1:])))
 
     def _on_acknowledge(self, message):
-        self.channel_event_function(message._data[0],
-                Message.Code.EVENT_RX_ACKNOWLEDGED, message._data[1:])
+        self._events.put(('event', (message._data[0],
+                Message.Code.EVENT_RX_ACKNOWLEDGED, message._data[1:])))
 
     def _on_burst_data(self, message):
 
@@ -269,20 +139,19 @@ class Ant(threading.Thread):
         channel  = message._data[0] & 0b00011111
         data     = message._data[1:]
         
-        self._burst_data.extend(data)
-        
+        # First sequence
+        if sequence == 0:
+            self._burst_data = data
+        # Other
+        else:
+            self._burst_data.extend(data)
+
         # Last sequence (indicated by bit 3)
         if sequence & 0b100 != 0:
-            self.channel_event_function(channel,
-                    Message.Code.EVENT_RX_BURST_PACKET, self._burst_data)
-            self._burst_data = array.array('B', [])
-        # Normal sequence
-        else:
-            #print "sequence", sequence, message._data[0]
-            #assert sequence == burst_seq + 1 or (sequence == 0 and burst_seq & 0b100) or (sequence == 1 and burst_seq == 3)
-            return
+            self._events.put(('event', (channel,
+                    Message.Code.EVENT_RX_BURST_PACKET, self._burst_data)))
 
-    def run(self):
+    def _worker(self):
 
         _logger.debug("Ant runner started")
 
@@ -300,22 +169,24 @@ class Ant(threading.Thread):
                     # Notifications
                     if message._id in [Message.ID.STARTUP_MESSAGE, \
                             Message.ID.SERIAL_ERROR_MESSAGE]:
-                        self.response_function(None, message._id, message._data)
+                        self._events.put(('response', (None, message._id, 
+                                message._data)))
                     # Response (no channel)
-                    if message._id in [Message.ID.RESPONSE_VERSION, \
+                    elif message._id in [Message.ID.RESPONSE_VERSION, \
                             Message.ID.RESPONSE_CAPABILITIES, \
                             Message.ID.RESPONSE_SERIAL_NUMBER]:
-                        self.response_function(None, message._id, message._data)
+                        self._events.put(('response', (None, message._id,
+                                message._data)))
                     # Response (channel)
-                    if message._id in [Message.ID.RESPONSE_CHANNEL_STATUS, \
+                    elif message._id in [Message.ID.RESPONSE_CHANNEL_STATUS, \
                             Message.ID.RESPONSE_CHANNEL_ID]:
-                        self.response_function(message._data[0], message._id,
-                                               message._data[1:])
+                        self._events.put(('response', (message._data[0],
+                                message._id, message._data[1:])))
                     # Response (other)
                     elif (message._id == Message.ID.RESPONSE_CHANNEL \
                           and message._data[1] != 0x01):
-                        self.response_function(message._data[0], 
-                                message._data[1], message._data[2:])
+                        self._events.put(('response', (message._data[0], 
+                                message._data[1], message._data[2:])))
                     # Channel event
                     elif message._id == Message.ID.BROADCAST_DATA:
                         self._on_broadcast(message)
@@ -325,8 +196,8 @@ class Ant(threading.Thread):
                         self._on_burst_data(message)
                     elif message._id == Message.ID.RESPONSE_CHANNEL:
                         _logger.debug("Got channel event, %r", message)
-                        self.channel_event_function(message._data[0],
-                                message._data[1], message._data[2:])
+                        self._events.put(('event', (message._data[0],
+                                message._data[1], message._data[2:])))
                     else:
                         _logger.warning("Got unknown message, %r", message)
                 else:
@@ -334,6 +205,7 @@ class Ant(threading.Thread):
 
                 # Send messages in queue, on indicated time slot
                 if message._id == Message.ID.BROADCAST_DATA:
+                    time.sleep(0.1)
                     _logger.debug("Got broadcast data, examine queue to see if we should send anything back")
                     if self._message_queue_cond.acquire(blocking=False):
                         while len(self._message_queue) > 0:
@@ -353,6 +225,24 @@ class Ant(threading.Thread):
             except usb.USBError as e:
                 _logger.warning("%s, %r", type(e), e.args)
 
+        _logger.debug("Ant runner stopped")
+
+    def _main(self):
+        while self._running:
+            try:
+                (event_type, event) = self._events.get(True, 1.0)
+                self._events.task_done()
+                (channel, event, data) = event
+                
+                if event_type == 'response':
+                    self.response_function(channel, event, data)
+                elif event_type == 'event':
+                    self.channel_event_function(channel, event, data)
+                else:
+                    _logger.warning("Unknown message typ '%s': %r", event_type, event)
+            except Queue.Empty as e:
+                pass
+
     def write_message_timeslot(self, message):
         with self._message_queue_cond:
             self._message_queue.append(message)
@@ -360,7 +250,7 @@ class Ant(threading.Thread):
     def write_message(self, message):
         data = message.get()
         self._out.write(data + array.array('B', [0x00, 0x00]))
-        _logger.debug("Write data: %s", _format_list(data))
+        _logger.debug("Write data: %s", format_list(data))
 
 
     def read_message(self):
@@ -375,7 +265,7 @@ class Ant(threading.Thread):
             data = self._in.read(4096)
             self._buffer.extend(data)
             _logger.debug("Read data: %s (now have %s in buffer)",
-                          _format_list(data), _format_list(self._buffer))
+                          format_list(data), format_list(self._buffer))
             return self.read_message()
 
     # Ant functions
@@ -392,11 +282,13 @@ class Ant(threading.Thread):
         self.write_message(message)
 
     def set_channel_id(self, channel, deviceNum, deviceType, transmissionType):
-        message = Message(Message.ID.SET_CHANNEL_ID, [channel, deviceNum[0], deviceNum[1], deviceType, transmissionType])
+        data = array.array('B', struct.pack("<BHBB", channel, deviceNum, deviceType, transmissionType))
+        message = Message(Message.ID.SET_CHANNEL_ID, data)
         self.write_message(message)
 
     def set_channel_period(self, channel, messagePeriod):
-        message = Message(Message.ID.SET_CHANNEL_PERIOD, [channel] + messagePeriod)
+        data = array.array('B', struct.pack("<BH", channel, messagePeriod))
+        message = Message(Message.ID.SET_CHANNEL_PERIOD, data)
         self.write_message(message)
 
     def set_channel_search_timeout(self, channel, timeout):
@@ -423,29 +315,36 @@ class Ant(threading.Thread):
         self.write_message(message)
 
     def request_message(self, channel, messageId):
-        message = Message(Message.ID.REQUEST_MESSAGE, [0x00, messageId])
+        message = Message(Message.ID.REQUEST_MESSAGE, [channel, messageId])
         self.write_message(message)
 
-    def send_acknowledged_data(self, channel, broadcastData):
-        message = Message(Message.ID.ACKNOWLEDGE_DATA, [0x00] + broadcastData)
+    def send_acknowledged_data(self, channel, data):
+        assert len(data) == 8
+        message = Message(Message.ID.ACKNOWLEDGE_DATA,
+                          array.array('B', [channel]) + data)
         self.write_message_timeslot(message)
 
-    def send_burst_transfer_packet(self, channelSeq, data, first):
-        message = Message(Message.ID.BURST_TRANSFER_DATA, [channelSeq] + data)
+    def send_burst_transfer_packet(self, channel_seq, data, first):
+        assert len(data) == 8
+        message = Message(Message.ID.BURST_TRANSFER_DATA,
+                          array.array('B', [channel_seq]) + data)
         self.write_message_timeslot(message)
 
     def send_burst_transfer(self, channel, data):
+        assert len(data) % 8 == 0
         _logger.debug("Send burst transfer, chan %s, data %s", channel, data)
-        for i in range(len(data)):
+        packets = len(data) / 8
+        for i in range(packets):
             sequence = i % 4
-            if i == len(data) - 1:
+            if i == packets - 1:
                 sequence = sequence | 0b100
-            channelSeq = channel | sequence << 5
-            self.send_burst_transfer_packet(channelSeq, data[i], first=i==0)
+            channel_seq = channel | sequence << 5
+            packet_data = data[i * 8:i * 8 + 8]
+            _logger.debug("Send burst transfer, packet %d, data %s", i, packet_data)
+            self.send_burst_transfer_packet(channel_seq, packet_data, first=i==0)
 
     def response_function(self, channel, event, data):
         pass
 
     def channel_event_function(self, channel, event, data):
         pass
-
