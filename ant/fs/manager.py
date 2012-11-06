@@ -24,6 +24,7 @@ import array
 import logging
 import struct
 import threading
+import traceback
 import Queue
 
 from ant.easy.channel import Channel
@@ -54,7 +55,6 @@ class Application:
     
     _serial_number = 1337
     _frequency     = 19    # 0 to 124, x - 2400 (in MHz)
-    #_period        = 
     
     def __init__(self):
 
@@ -91,32 +91,27 @@ class Application:
         self._node.start()
 
     def _main(self):
-        #print "Run, await beacon"
-        b = self._get_beacon()
-        #print "Run, do link"
-        self.on_link(b)
-        #self.link()
-        for i in range(0, 5):
-            #print "Run, await beacon"
-            x = self._get_beacon()
-            #print "Run, check beacon"
-            if x.get_client_device_state() == Beacon.ClientDeviceState.AUTHENTICATION:
-                #print "Run, beacon ok"
-                self.on_authentication(x)
-                #self.authentication()
-                y = self._get_beacon()
-                self.on_transport(y)
-                self.disconnect()
-                break
-            else:
-                #print "Run, beacon bad :(", x.get_client_device_state(), Beacon.ClientDeviceState.AUTHENTICATION
-                pass
-        #else:
-        #    run()
-        
-        # auth state
-        _logger.debug("Run 5")
-        self.stop()
+        try:
+            _logger.debug("Link level")
+            beacon = self._get_beacon()
+            if self.on_link(beacon):
+                for i in range(0, 5):
+                    beacon = self._get_beacon()
+                    if beacon.get_client_device_state() == Beacon.ClientDeviceState.AUTHENTICATION:
+                        _logger.debug("Auth layer")
+                        if self.on_authentication(beacon):
+                            _logger.debug("Authenticated")
+                            beacon = self._get_beacon()
+                            self.on_transport(beacon)
+                        self.disconnect()
+                        break
+        except Exception as e:
+            print e
+            for line in traceback.format_exc().splitlines():
+                _logger.error("%r", line)
+        finally:
+            _logger.debug("Run 5")
+            self.stop()
 
 
     def _on_beacon(self, data):
