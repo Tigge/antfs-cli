@@ -41,7 +41,9 @@ class AntFSException(Exception):
     pass
 
 class AntFSDownloadException(AntFSException):
-    pass
+    
+    def __init__(self, error):
+        self.error = error
 
 class AntFSAuthenticationException(AntFSException):
     
@@ -194,7 +196,7 @@ class Application:
             _logger.debug("Wait for response...")
             try:
                 response = self._get_command()
-                if isinstance(response, DownloadResponse):
+                if response._get_argument("response") == DownloadResponse.Response.OK:
                     remaining    = response._get_argument("remaining")
                     offset       = response._get_argument("offset")
                     total        = offset + remaining
@@ -207,7 +209,7 @@ class Application:
                     crc = response._get_argument("crc")
                     offset = total
                 else:
-                    raise AntFSDownloadException()
+                    raise AntFSDownloadException(response._get_argument("response"))
             except Queue.Empty:
                 _logger.debug("Download %d timeout", index)
                 #print "recover from download failure"
