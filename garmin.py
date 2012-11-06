@@ -25,7 +25,7 @@
 #from ant.base import Message
 #from ant.easy.node import Node, Message
 #from ant.easy.channel import Channel
-from ant.fs.manager import Application
+from ant.fs.manager import Application, AntFSAuthenticationException
 
 import utilities
 import scripting
@@ -98,6 +98,7 @@ class Garmin(Application):
         _logger.debug("on link, %r, %r", beacon.get_serial(),
                       beacon.get_descriptor())
         self.link()
+        return True
 
     def on_authentication(self, beacon):
         _logger.debug("on authentication")
@@ -107,10 +108,24 @@ class Garmin(Application):
         _logger.debug("serial %s, %r, %r", self.name, self.serial, self.passkey)
         
         if self.passkey != None:
-            self.authentication_passkey(self.passkey)
+            try:
+                print " - Passkey:",
+                self.authentication_passkey(self.passkey)
+                print "OK"
+                return True
+            except AntFSAuthenticationException as e:
+                print "FAILED"
+                return False
         else:
-            self.passkey = self.authentication_pair(self.PRODUCT_NAME)
-            self.write_passkey(self.serial, self.passkey)
+            try:
+                print " - Pairing:",
+                self.passkey = self.authentication_pair(self.PRODUCT_NAME)
+                self.write_passkey(self.serial, self.passkey)
+                print "OK"
+                return True
+            except AntFSAuthenticationException as e:
+                print "FAILED"
+                return False
 
     def on_transport(self, beacon):
 
