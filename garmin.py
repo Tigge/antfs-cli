@@ -67,7 +67,7 @@ class Garmin(Application):
         try:
             path = os.path.join(self.config_dir, str(serial))
             with open(os.path.join(path, "authfile"), 'rb') as f:
-                d = list(struct.unpack("<8B", f.read()))
+                d = array.array('B', f.read())
                 _logger.debug("loaded authfile: %r", d)
                 return d
         except:
