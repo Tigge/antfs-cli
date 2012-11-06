@@ -54,6 +54,7 @@ def wait_for_message(match, process, queue, condition):
                 raise TransferFailedException()
         _logger.debug(" - could not find response matching %r", match)
         condition.wait(1.0)
+    condition.release()
     raise AntException("Timed out while waiting for message")
     
 def wait_for_event(ok_codes, queue, condition):
