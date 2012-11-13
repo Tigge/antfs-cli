@@ -230,7 +230,7 @@ class DownloadResponse(Command):
 class UploadRequest(Command):
     
     _id     = Command.Type.UPLOAD_REQUEST
-    _format = Command._format + "HIBBBBI"
+    _format = Command._format + "HI4xI"
     
     def __init__(self, data_index, max_size, data_offset):
         Command.__init__(self)
@@ -270,9 +270,17 @@ class UploadDataCommand(Command):
     def __init__(self, crc_seed, data_offset, data, crc):
         Command.__init__(self)
         self._add_argument("crc_seed", crc_seed)
-        self._add_argument("data_offsetd", data_offset)
+        self._add_argument("data_offset", data_offset)
         self._add_argument("data", data)
         self._add_argument("crc", crc)
+
+    def get(self):
+        header = struct.pack("<BBHI", *self._get_arguments()[:4])
+        footer = struct.pack("<6xH", self._get_argument("crc"))
+        data = array.array('B', header)
+        data.extend(self._get_argument("data"))
+        data.extend(array.array('B', footer))
+        return data
 
     @classmethod
     def _parse_args(cls, data):
@@ -282,11 +290,11 @@ class UploadDataCommand(Command):
 class UploadDataResponse(Command):
     
     class Response:
-        UPLOAD_SUCCESSFUL = 0
-        UPLOAD_FAILED     = 1
+        OK     = 0
+        FAILED = 1
     
     _id     = Command.Type.UPLOAD_DATA_RESPONSE
-    _format = Command._format + "B"
+    _format = Command._format + "B5x"
     
     def __init__(self, response):
         Command.__init__(self)
