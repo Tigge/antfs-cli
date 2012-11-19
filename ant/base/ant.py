@@ -335,12 +335,14 @@ class Ant():
         _logger.debug("Send burst transfer, chan %s, data %s", channel, data)
         packets = len(data) / 8
         for i in range(packets):
-            sequence = i % 4
-            if i == packets - 1:
+            sequence = ((i - 1) % 3) + 1
+            if i == 0:
+                sequence = 0
+            elif i == packets - 1:
                 sequence = sequence | 0b100
             channel_seq = channel | sequence << 5
             packet_data = data[i * 8:i * 8 + 8]
-            _logger.debug("Send burst transfer, packet %d, data %s", i, packet_data)
+            _logger.debug("Send burst transfer, packet %d, seq %d, data %s", i, sequence, packet_data)
             self.send_burst_transfer_packet(channel_seq, packet_data, first=i==0)
 
     def response_function(self, channel, event, data):
