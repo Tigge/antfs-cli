@@ -195,7 +195,7 @@ class AntFSCLI(Application):
     def on_transport(self, beacon):
 
         directory = self.download_directory()
-        directory.print_list()
+        #directory.print_list()
         
         # Map local files to FIT file types
         local_files  = {}
@@ -235,23 +235,30 @@ class AntFSCLI(Application):
                 self.download_file(fileobject)
 
         # Upload missing files:
-        if upload_total > 0:
+        if upload_total > 0 and self._uploading:
             # Upload
-            results = []
+            results = {}
             for typ, files in uploading.items():
                 for filename in files:
-                    print "upload", typ, filename
+                    #print "upload", typ, filename
                     index = self.upload_file(typ, filename)
+                    #print "got index", index
                     results[index] = (filename, typ)
             # Rename
             directory = self.download_directory()
-            for index, (filename, typ) in results:
-                file_object = filter(lambda f: f.get_index() == index,
-                        directory.get_files())[0]
-                src = os.path.join(self._device.get_path(), _filetypes[typ], filename)
-                dst = self.get_filepath(file_object)
-                print "move from", src, "to", dst
-                os.rename(src, dst)
+            #directory.print_list()
+            for index, (filename, typ) in results.items():
+                #print "rename for", index, filename, typ
+                #print "candidates:", filter(lambda f: f.get_index() == index, directory.get_files())
+                try:
+                    file_object = filter(lambda f: f.get_index() == index,
+                            directory.get_files())[0]
+                    src = os.path.join(self._device.get_path(), _filetypes[typ], filename)
+                    dst = self.get_filepath(file_object)
+                    print " - Renamed", src, "to", dst
+                    os.rename(src, dst)
+                except Exception as e:
+                    print " - Failed", index, filename, e
 
     def get_filename(self, fil):
         return str.format("{0}_{1}_{2}.fit",
