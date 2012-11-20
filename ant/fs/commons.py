@@ -25,7 +25,7 @@ def crc(data, seed=0x0000):
     rem = seed
     for byte in data:
         rem ^= byte 
-        for _ in range(0, 8): 
+        for _ in range(0, 8):
             if rem & 0x0001:
                 rem = (rem >> 1)
                 rem ^= 0xa001

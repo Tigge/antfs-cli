@@ -197,26 +197,26 @@ class Application:
         pass
     
     def _send_commandpipe(self, data):
-        print "send commandpipe", data
+        #print "send commandpipe", data
         self.upload(0xfffe, data)
     
     def _get_commandpipe(self):
-        print "get commandpipe"
+        #print "get commandpipe"
         return ant.fs.commandpipe.parse(self.download(0xfffe))
     
-        print "create", typ
     def create(self, typ, data, callback=None):
+        #print "create", typ
         request = CreateFile(len(data), 0x80, [typ, 0x00, 0x00], [0x00, 0xff, 0xff])
         self._send_commandpipe(request.get())
         result = self._get_commandpipe()
+        #result._debug()
         
         if result.get_response() != Response.Response.OK:
             raise AntFSCreateFileException("Could not create file",
                     result.get_response())
         
-        print "create result", result, result.get_index(), result.get_data_type(), result.get_identifier()
-        d = self.download_directory()
-        d.print_list()
+        #print "create result", result, result.get_index(), result.get_data_type(), result.get_identifier()
+        #d = self.download_directory()
         
         self.upload(result.get_index(), data, callback)
         return result.get_index()

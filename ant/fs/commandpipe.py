@@ -143,7 +143,6 @@ class CreateFile(CommandPipe):
         self._add_argument('identifier_mask', identifier_mask)
 
     def get(self):
-        print len(self._get_arguments()[:-2]), self._get_arguments()[:4]
         data = array.array('B', struct.pack(CommandPipe._format + "IB",
                            *self._get_arguments()[:4]))
         data.extend(self._get_argument("identifier"))
