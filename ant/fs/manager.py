@@ -204,8 +204,8 @@ class Application:
         print "get commandpipe"
         return ant.fs.commandpipe.parse(self.download(0xfffe))
     
-    def create(self, typ, data):
         print "create", typ
+    def create(self, typ, data, callback=None):
         request = CreateFile(len(data), 0x80, [typ, 0x00, 0x00], [0x00, 0xff, 0xff])
         self._send_commandpipe(request.get())
         result = self._get_commandpipe()
@@ -218,7 +218,8 @@ class Application:
         d = self.download_directory()
         d.print_list()
         
-        return self.upload(result.get_index(), data)
+        self.upload(result.get_index(), data, callback)
+        return result.get_index()
     
     def upload(self, index, data, callback=None):
         #print "upload", index, len(data)
