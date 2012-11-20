@@ -221,56 +221,58 @@ class Application:
         return self.upload(result.get_index(), data)
     
     def upload(self, index, data, callback=None):
-        print "upload", index, len(data)
-        self._send_command(UploadRequest(index, len(data), 0))
-        response = self._get_command()
-        
-        print response
-        print "response            ", response._get_argument("response")
-        print "last_data_offset    ", response._get_argument("last_data_offset")
-        print "maximum_file_size   ", response._get_argument("maximum_file_size")
-        print "maximum_block_size  ", response._get_argument("maximum_block_size")
-        print "crc                 ", response._get_argument("crc")
-        print "file size           ", len(data)
-        print "index               ", index
-        if response._get_argument("response") == UploadResponse.Response.OK:
-            crc_seed  = response._get_argument("crc")
-            offset    = response._get_argument("last_data_offset")
-            max_block = response._get_argument("maximum_block_size")
-            offset    = 0
-            
-            max_block = min(8, max_block)
-            
-            while True:
-                
-                data_packet = data[offset:offset + max_block]
-                crc_val = crc(data_packet, crc_seed)
+        #print "upload", index, len(data)
 
-                print "packet", len(data_packet)
-                print "crc   ", crc_val
+        iteration = 0
+        while True:
+            
+            # Request Upload
+            
+            # Continue using Last Data Offset (special MAX_ULONG value)
+            request_offset = 0 if iteration == 0 else 0xffffffff
+            self._send_command(UploadRequest(index, len(data), request_offset))
+            
+            upload_response = self._get_command()
+            #upload_response._debug()
+            
+            if upload_response._get_argument("response") != UploadResponse.Response.OK:
+                raise AntFSUploadException("Upload request failed",
+                        upload_response._get_argument("response"))
 
-                self._send_command(UploadDataCommand(crc_seed, offset, data_packet, crc_val))
-                response = self._get_command()
-                if response._get_argument("response") != UploadDataResponse.Response.OK:
-                    print "Upload data failed", response._get_argument("response"),
-                    raise AntFSUploadException("Upload data failed",
-                            response._get_argument("response"))
-                
-                offset += len(data_packet)
-                crc_seed = crc_val
-                
-                if offset == len(data):
-                    print "done"
-                    break
-                print "one more", offset, len(data)
-        else:
-            print "Upload request failed", response._get_argument("response"),\
-                    response._get_argument("last_data_offset"),\
-                    response._get_argument("maximum_file_size"),\
-                    response._get_argument("maximum_block_size"),\
-                    response._get_argument("crc")
-            raise AntFSUploadException("Upload request failed",
-                    response._get_argument("response"))
+            # Upload data
+            offset      = upload_response._get_argument("last_data_offset")
+            max_block   = upload_response._get_argument("maximum_block_size")
+            #print " uploading", offset, "to", offset + max_block
+            data_packet = data[offset:offset + max_block]
+            crc_seed    = upload_response._get_argument("crc")
+            crc_val     = crc(data_packet, upload_response._get_argument("crc"))
+            
+            # Pad with 0 to even 8 bytes
+            missing_bytes = 8 - (len(data_packet) % 8)
+            if missing_bytes != 8:
+                data_packet.extend(array.array('B', [0] * missing_bytes))
+                #print " adding", str(missing_bytes), "padding"
+
+            #print " packet", len(data_packet)
+            #print " crc   ", crc_val, "from seed", crc_seed
+
+            self._send_command(UploadDataCommand(crc_seed, offset, data_packet, crc_val))
+            upload_data_response = self._get_command()
+            #upload_data_response._debug()
+            if upload_data_response._get_argument("response") != UploadDataResponse.Response.OK:
+                raise AntFSUploadException("Upload data failed",
+                        upload_data_response._get_argument("response"))
+            
+            if callback != None and len(data) != 0:
+                callback(float(offset) / float(len(data)))
+
+            if offset + len(data_packet) >= len(data):
+                #print " done"
+                break
+
+            #print " one more"
+            iteration += 1
+
     
     def download(self, index, callback=None):
         offset  = 0
