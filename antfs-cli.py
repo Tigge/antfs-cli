@@ -264,6 +264,15 @@ class AntFSCLI(Application):
         return os.path.join(path, self.get_filename(fil))
 
 
+    def _get_progress_callback(self):
+        def callback(new_progress):
+            diff = int(new_progress * 10.0) - int(callback.progress * 10.0)
+            sys.stdout.write("." * diff)
+            sys.stdout.flush()
+            callback.progress = new_progress
+        callback.progress = 0.0
+        return callback
+
     def download_file(self, fil):
 
         sys.stdout.write("Downloading " + self.get_filename(fil) + " [")
@@ -274,7 +283,7 @@ class AntFSCLI(Application):
             sys.stdout.flush()
             callback.progress = new_progress
         callback.progress = 0.0
-        data = self.download(fil.get_index(), callback)
+        data = self.download(fil.get_index(), self._get_progress_callback())
         with open(self.get_filepath(fil), "w") as fd:
             data.tofile(fd)
         sys.stdout.write("]\n")
@@ -283,10 +292,15 @@ class AntFSCLI(Application):
         self.scriptr.run_download(self.get_filepath(fil), fil.get_fit_sub_type())
 
     def upload_file(self, typ, filename):
+        sys.stdout.write("Uploading " + filename + " [")
+        sys.stdout.flush()
         with open(os.path.join(self._device.get_path(), _filetypes[typ],
                 filename), 'r') as fd:
             data = array.array('B', fd.read())
-        return self.create(typ, data)
+        index = self.create(typ, data, self._get_progress_callback())
+        sys.stdout.write("]\n")
+        sys.stdout.flush()
+        return index
 
 def main():
     
