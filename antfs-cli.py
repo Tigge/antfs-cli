@@ -34,6 +34,7 @@ import scripting
 import array
 import logging
 import time
+from optparse import OptionParser   
 import os
 import struct
 import sys
@@ -131,7 +132,7 @@ class AntFSCLI(Application):
 
     PRODUCT_NAME = "antfs-cli"
 
-    def __init__(self):
+    def __init__(self, uploading):
         Application.__init__(self)
         
         _logger.debug("Creating directories")
@@ -143,6 +144,7 @@ class AntFSCLI(Application):
         self.scriptr  = scripting.Runner(self.script_dir)
         
         self.device = None
+        self._uploading = uploading
 
     def setup_channel(self, channel):
         channel.set_period(4096)
@@ -303,8 +305,12 @@ def main():
 
     _logger.addHandler(handler)
 
+    parser = OptionParser()
+    parser.add_option("--upload", action="store_true", dest="upload", default=False, help="enable uploading")
+    (options, args) = parser.parse_args()
+
     try:
-        g = AntFSCLI()
+        g = AntFSCLI(options.upload)
         g.start()
     except Device.ProfileVersionException as e:
         print "\nError:", str(e), "\n\nThis means that", \
