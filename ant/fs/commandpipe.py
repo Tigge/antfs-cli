@@ -73,6 +73,19 @@ class CommandPipe:
         assert args[0] == cls._id
         return cls(*args[2:])
 
+    def _debug(self):
+        max_key_length, max_value_length = 0, 0
+        for key, value in self._arguments.items():
+            max_key_length = max(len(str(key)), max_key_length)
+            max_value_length = max(len(str(value)), max_value_length)
+        max_length = max_key_length + max_value_length + 3
+        print "=" * max_length
+        print self.__class__.__name__
+        print "-" * max_length
+        for key, value in self._arguments.items():
+            print str(key) + ":", " " * (max_length - len(key)), str(value)
+        print "=" * max_length
+
 class Request(CommandPipe):
     
     _id     = CommandPipe.Type.REQUEST
