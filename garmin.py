@@ -34,6 +34,7 @@ import scripting
 import array
 import logging
 import time
+from optparse import OptionParser   
 import os
 import struct
 import sys
@@ -139,7 +140,7 @@ class Garmin(Application):
 
     PRODUCT_NAME = "garmin-extractor"
 
-    def __init__(self):
+    def __init__(self, uploading):
         Application.__init__(self)
         
         _logger.debug("Creating directories")
@@ -151,6 +152,7 @@ class Garmin(Application):
         self.scriptr  = scripting.Runner(self.script_dir)
         
         self.device = None
+        self._uploading = uploading
 
     def setup_channel(self, channel):
         channel.set_period(4096)
@@ -312,8 +314,12 @@ def main():
 
     logger.addHandler(handler)
 
+    parser = OptionParser()
+    parser.add_option("--upload", action="store_true", dest="upload", default=False, help="enable uploading")
+    (options, args) = parser.parse_args()
+
     try:
-        g = Garmin()
+        g = Garmin(options.upload)
         g.start()
     except Device.ProfileVersionException as e:
         print "\nError:", str(e), "\n\nThis means that", \
