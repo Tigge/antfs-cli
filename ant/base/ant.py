@@ -33,74 +33,15 @@ import usb.util
 
 from message import Message
 from commons import format_list
+from driver import find_driver
 
 _logger = logging.getLogger("garmin.ant.base.ant")
 
 class Ant():
 
-    def __init__(self, idVendor, idProduct):
+    def __init__(self):
 
-        # Find USB device
-        _logger.debug("USB Find device, vendor %#04x, product %#04x", idVendor, idProduct)
-        dev = usb.core.find(idVendor=idVendor, idProduct=idProduct)
-
-        # was it found?
-        if dev is None:
-            raise ValueError('Device not found')
-
-        _logger.debug("USB Config values:")
-        for cfg in dev:
-            _logger.debug(" Config %s", cfg.bConfigurationValue)
-            for intf in cfg:
-                _logger.debug("  Interface %s, Alt %s", str(intf.bInterfaceNumber), str(intf.bAlternateSetting))
-                for ep in intf:
-                    _logger.debug("   Endpoint %s", str(ep.bEndpointAddress))
-
-        # unmount a kernel driver (TODO: should probably reattach later)
-        if dev.is_kernel_driver_active(0):
-            _logger.debug("A kernel driver active, detatching")
-            dev.detach_kernel_driver(0)
-        else:
-            _logger.debug("No kernel driver active")
-
-        # set the active configuration. With no arguments, the first
-        # configuration will be the active one
-        dev.set_configuration()
-        dev.reset()
-        #dev.set_configuration()
-
-        # get an endpoint instance
-        cfg = dev.get_active_configuration()
-        interface_number = cfg[(0,0)].bInterfaceNumber
-        alternate_setting = usb.control.get_interface(dev, interface_number)
-        intf = usb.util.find_descriptor(
-            cfg, bInterfaceNumber = interface_number,
-            bAlternateSetting = alternate_setting
-        )
-
-        self._out = usb.util.find_descriptor(
-            intf,
-            # match the first OUT endpoint
-            custom_match = \
-            lambda e: \
-                usb.util.endpoint_direction(e.bEndpointAddress) == \
-                usb.util.ENDPOINT_OUT
-        )
-
-        _logger.debug("UBS Endpoint out: %s, %s", self._out, self._out.bEndpointAddress)
-
-        self._in = usb.util.find_descriptor(
-            intf,
-            # match the first OUT endpoint
-            custom_match = \
-            lambda e: \
-                usb.util.endpoint_direction(e.bEndpointAddress) == \
-                usb.util.ENDPOINT_IN
-        )
-
-        _logger.debug("UBS Endpoint in: %s, %s", self._in, self._in.bEndpointAddress)
-
-        assert self._out is not None and self._in is not None
+        self._driver = find_driver()
 
         self._message_queue_cond = threading.Condition()
         self._message_queue      = collections.deque()
@@ -112,6 +53,8 @@ class Ant():
         self._last_data = array.array('B', [])
 
         self._running = True
+
+        self._driver.open()
 
         self._worker_thread = threading.Thread(target=self._worker, name="ant.base")
         self._worker_thread.start()
@@ -249,7 +192,7 @@ class Ant():
 
     def write_message(self, message):
         data = message.get()
-        self._out.write(data + array.array('B', [0x00, 0x00]))
+        self._driver.write(data + array.array('B', [0x00, 0x00]))
         _logger.debug("Write data: %s", format_list(data))
 
 
@@ -262,7 +205,7 @@ class Ant():
             return Message.parse(packet)
         # Otherwise, read some data and call the function again
         else:
-            data = self._in.read(4096)
+            data = self._driver.read()
             self._buffer.extend(data)
             _logger.debug("Read data: %s (now have %s in buffer)",
                           format_list(data), format_list(self._buffer))
