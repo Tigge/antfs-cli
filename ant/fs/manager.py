@@ -79,7 +79,7 @@ class Application:
         self._queue = Queue.Queue()
         self._beacons = Queue.Queue()
 
-        self._node = Node(0x0fcf, 0x1008)
+        self._node = Node()
 
         print "Request basic information..."
         m = self._node.request_message(Message.ID.RESPONSE_VERSION)

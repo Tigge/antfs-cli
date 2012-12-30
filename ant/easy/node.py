@@ -34,7 +34,7 @@ _logger = logging.getLogger("garmin.ant.easy.node")
 
 class Node():
     
-    def __init__(self, idVendor, idProduct):
+    def __init__(self):
         
         self._responses_cond = threading.Condition()
         self._responses      = collections.deque()
@@ -45,7 +45,7 @@ class Node():
         
         self.channels = {}
         
-        self.ant = Ant(idVendor, idProduct)
+        self.ant = Ant()
         
         self._running = True
         

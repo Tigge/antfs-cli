@@ -40,9 +40,6 @@ import struct
 import sys
 import traceback
 
-ID_VENDOR  = 0x0fcf
-ID_PRODUCT = 0x1008
-
 PRODUCT_NAME = "garmin-extractor"
 
 _logger = logging.getLogger("garmin")
