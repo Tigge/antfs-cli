@@ -112,8 +112,8 @@ try:
             self._serial.timeout = 0
         
         def read(self):
-            data = read(4096)
-            print "serial read", type(data), data
+            data = self._serial.read(4096)
+            print "serial read", len(data), type(data), data
             return data
 
         def write(self, data):
