@@ -22,6 +22,7 @@ been able to download data of their watches:
  - Garmin Forerunner 310XT
  - Garmin Forerunner 610
  - Garmin Forerunner 910XT
+ - Garmin FR70
 
 It's possible that other manufactures using ANT+/ANT-FS, such as Suunto and
 Timex might work, but have *never* been tested as far as I know. Please let
