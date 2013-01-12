@@ -101,6 +101,9 @@ class Ant():
         while self._running:
             try:
                 message = self.read_message()
+                
+                if message == None:
+                    break
 
                 # TODO: flag and extended for broadcast, acknowledge, and burst
 
@@ -197,19 +200,18 @@ class Ant():
 
 
     def read_message(self):
-        # If we have a message in buffer already, return it
-        if len(self._buffer) >= 5 and len(self._buffer) >= self._buffer[1] + 4:
-            packet       = self._buffer[:self._buffer[1] + 4]
-            self._buffer = self._buffer[self._buffer[1] + 4:]
-            
-            return Message.parse(packet)
-        # Otherwise, read some data and call the function again
-        else:
-            data = self._driver.read()
-            self._buffer.extend(data)
-            _logger.debug("Read data: %s (now have %s in buffer)",
-                          format_list(data), format_list(self._buffer))
-            return self.read_message()
+        while self._running:
+            # If we have a message in buffer already, return it
+            if len(self._buffer) >= 5 and len(self._buffer) >= self._buffer[1] + 4:
+                packet       = self._buffer[:self._buffer[1] + 4]
+                self._buffer = self._buffer[self._buffer[1] + 4:]
+                return Message.parse(packet)
+            # Otherwise, read some data and call the function again
+            else:
+                data = self._driver.read()
+                self._buffer.extend(data)
+                _logger.debug("Read data: %s (now have %s in buffer)",
+                              format_list(data), format_list(self._buffer))
 
     # Ant functions
 
