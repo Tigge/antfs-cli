@@ -54,6 +54,7 @@ class Driver:
 drivers = []
 
 try:
+    import array
     import os
     import os.path
 
@@ -70,19 +71,21 @@ try:
         
         @classmethod
         def get_url(cls):
-            path = '/sys/bus/usb-serial/devices'
-            for device in os.listdir(path):
-                try:
-                    device_path = os.path.realpath(os.path.join(path, device))
-                    device_path = os.path.join(device_path, "../../")
-                    ven = int(open(os.path.join(device_path, 'idVendor')).read().strip(), 16)
-                    pro = int(open(os.path.join(device_path, 'idProduct')).read().strip(), 16)
-                    if ven == cls.ID_VENDOR or cls.ID_PRODUCT == pro:
-                        return os.path.join("/dev", device)
-                except:
-                    continue
-            return None
-        
+            try:
+                path = '/sys/bus/usb-serial/devices'
+                for device in os.listdir(path):
+                    try:
+                        device_path = os.path.realpath(os.path.join(path, device))
+                        device_path = os.path.join(device_path, "../../")
+                        ven = int(open(os.path.join(device_path, 'idVendor')).read().strip(), 16)
+                        pro = int(open(os.path.join(device_path, 'idProduct')).read().strip(), 16)
+                        if ven == cls.ID_VENDOR or cls.ID_PRODUCT == pro:
+                            return os.path.join("/dev", device)
+                    except:
+                        continue
+                return None
+            except OSError:
+                return None
         
         def open(self):
             
@@ -113,12 +116,12 @@ try:
         
         def read(self):
             data = self._serial.read(4096)
-            print "serial read", len(data), type(data), data
-            return data
+            #print "serial read", len(data), type(data), data
+            return array.array('B', data)
 
         def write(self, data):
             try:
-                print "serial write", type(data), data
+                #print "serial write", type(data), data
                 self._serial.write(data)
             except serial.SerialTimeoutException as e:
                 raise DriverTimeoutException(e)
