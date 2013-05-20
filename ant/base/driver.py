@@ -226,7 +226,7 @@ try:
 
     class USB3Driver(USBDriver):
         ID_VENDOR  = 0x0fcf
-        ID_PRODUCT = 0x1008
+        ID_PRODUCT = 0x1009
 
     drivers.append(USB2Driver)
     drivers.append(USB3Driver)
