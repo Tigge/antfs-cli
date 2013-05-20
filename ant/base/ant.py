@@ -39,6 +39,8 @@ _logger = logging.getLogger("garmin.ant.base.ant")
 
 class Ant():
 
+    _RESET_WAIT = 1
+
     def __init__(self):
 
         self._driver = find_driver()
@@ -58,6 +60,8 @@ class Ant():
 
         self._worker_thread = threading.Thread(target=self._worker, name="ant.base")
         self._worker_thread.start()
+
+        self.reset_system()
 
     def start(self):
         self._main()
@@ -195,7 +199,7 @@ class Ant():
 
     def write_message(self, message):
         data = message.get()
-        self._driver.write(data + array.array('B', [0x00, 0x00]))
+        self._driver.write(data)
         _logger.debug("Write data: %s", format_list(data))
 
 
@@ -258,6 +262,7 @@ class Ant():
     def reset_system(self):
         message = Message(Message.ID.RESET_SYSTEM, [0x00])
         self.write_message(message)
+        time.sleep(self._RESET_WAIT)
 
     def request_message(self, channel, messageId):
         message = Message(Message.ID.REQUEST_MESSAGE, [channel, messageId])
