@@ -311,24 +311,28 @@ class AntFSCLI(Application):
 
 def main():
     
+    parser = OptionParser()
+    parser.add_option("--upload", action="store_true", dest="upload", default=False, help="enable uploading")
+    parser.add_option("--debug", action="store_true", dest="debug", default=False, help="enable debug")
+    (options, args) = parser.parse_args()
+    
     # Find out what time it is
     # used for logging filename.
     currentTime = time.strftime("%Y%m%d-%H%M%S")
 
     # Set up logging
     _logger.setLevel(logging.DEBUG)
-    handler = logging.FileHandler(currentTime + "-" + AntFSCLI.PRODUCT_NAME + ".log", "w")
-    #handler = logging.StreamHandler()
 
     # If you add new module/logger name longer than the 15 characters just increase the value after %(name).
     # The longest module/logger name now is "ant.base" and "ant.easy".
-    handler.setFormatter(logging.Formatter(fmt='%(threadName)-10s %(asctime)s  %(name)-15s  %(levelname)-8s  %(message)s (%(filename)s:%(lineno)d)'))
+    formatter = logging.Formatter(fmt='%(threadName)-10s %(asctime)s  %(name)-15s  %(levelname)-8s  %(message)s (%(filename)s:%(lineno)d)')
 
+    handler = logging.FileHandler(currentTime + "-" + AntFSCLI.PRODUCT_NAME + ".log", "w")
+    handler.setFormatter(formatter)
     _logger.addHandler(handler)
 
-    parser = OptionParser()
-    parser.add_option("--upload", action="store_true", dest="upload", default=False, help="enable uploading")
-    (options, args) = parser.parse_args()
+    if options.debug:
+        _logger.addHandler(logging.StreamHandler())
 
     try:
         g = AntFSCLI(options.upload)
