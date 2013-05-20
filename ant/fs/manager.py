@@ -81,29 +81,40 @@ class Application:
 
         self._node = Node()
 
-        print "Request basic information..."
-        m = self._node.request_message(Message.ID.RESPONSE_VERSION)
-        print "  ANT version:  ", struct.unpack("<10sx", m[2])[0]
-        m = self._node.request_message(Message.ID.RESPONSE_CAPABILITIES)
-        print "  Capabilities: ", m[2]
-        m = self._node.request_message(Message.ID.RESPONSE_SERIAL_NUMBER)
-        print "  Serial number:", struct.unpack("<I", m[2])[0]
+        try:
+            NETWORK_KEY= [0xa8, 0xa4, 0x23, 0xb9, 0xf5, 0x5e, 0x63, 0xc1]
+            self._node.set_network_key(0x00, NETWORK_KEY)
 
-        print "Starting system..."
 
-        NETWORK_KEY= [0xa8, 0xa4, 0x23, 0xb9, 0xf5, 0x5e, 0x63, 0xc1]
+            print "Request basic information..."
 
-        self._node.reset_system()
-        self._node.set_network_key(0x00, NETWORK_KEY)
+            m = self._node.request_message(Message.ID.RESPONSE_CAPABILITIES)
+            print "  Capabilities: ", m[2]
 
-        self._channel = self._node.new_channel(Channel.Type.BIDIRECTIONAL_RECEIVE)
-        self._channel.on_broadcast_data = self._on_data
-        self._channel.on_burst_data = self._on_data
-        
-        self.setup_channel(self._channel)
-        
-        self._worker_thread =threading.Thread(target=self._worker, name="ant.fs")
-        self._worker_thread.start()
+            #m = self._node.request_message(Message.ID.RESPONSE_VERSION)
+            #print "  ANT version:  ", struct.unpack("<10sx", m[2])[0]
+
+            #m = self._node.request_message(Message.ID.RESPONSE_SERIAL_NUMBER)
+            #print "  Serial number:", struct.unpack("<I", m[2])[0]
+
+            print "Starting system..."
+
+            #NETWORK_KEY= [0xa8, 0xa4, 0x23, 0xb9, 0xf5, 0x5e, 0x63, 0xc1]
+            #self._node.set_network_key(0x00, NETWORK_KEY)
+
+            print "Key done..."
+
+            self._channel = self._node.new_channel(Channel.Type.BIDIRECTIONAL_RECEIVE)
+            self._channel.on_broadcast_data = self._on_data
+            self._channel.on_burst_data = self._on_data
+            
+            self.setup_channel(self._channel)
+            
+            self._worker_thread =threading.Thread(target=self._worker, name="ant.fs")
+            self._worker_thread.start()
+        except Exception as e:
+            self.stop()
+            raise e
 
     def _worker(self):
         self._node.start()
