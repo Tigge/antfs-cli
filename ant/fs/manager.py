@@ -56,8 +56,8 @@ class AntFSException(Exception):
 
 class AntFSDownloadException(AntFSException):
     
-    def __init__(self, error):
-        AntFSException.__init__(self, error)
+    def __init__(self, error, errno=None):
+        AntFSException.__init__(self, error, errno)
 
 class AntFSUploadException(AntFSException):
     
@@ -301,7 +301,7 @@ class Application:
                     crc = response._get_argument("crc")
                     offset = total
                 else:
-                    raise AntFSDownloadException("Download request failed",
+                    raise AntFSDownloadException("Download request failed: ",
                             response._get_argument("response"))
             except Queue.Empty:
                 _logger.debug("Download %d timeout", index)
