@@ -94,7 +94,7 @@ try:
             #      problems at the moment.
             
             try:
-                self._serial = serial.serial_for_url(self.get_url())
+                self._serial = serial.serial_for_url(self.get_url(), 115200)
             except serial.SerialException as e:
                 raise DriverException(e)
             
