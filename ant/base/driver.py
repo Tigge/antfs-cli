@@ -60,7 +60,7 @@ try:
 
     import serial
 
-    class USB1Driver(Driver):
+    class SerialDriver(Driver):
 
         ID_VENDOR  = 0x0fcf
         ID_PRODUCT = 0x1004
@@ -129,7 +129,7 @@ try:
         def close(self):
             self._serial.close()
 
-    drivers.append(USB1Driver)
+    drivers.append(SerialDriver)
     
 except ImportError:
     pass
@@ -139,10 +139,7 @@ try:
     import usb.core
     import usb.util
 
-    class USB2Driver(Driver):
-
-        ID_VENDOR  = 0x0fcf
-        ID_PRODUCT = 0x1008
+    class USBDriver(Driver):
 
         def __init__(self):
             pass
@@ -223,7 +220,16 @@ try:
         def write(self, data):
             self._out.write(data)
 
+    class USB2Driver(USBDriver):
+        ID_VENDOR  = 0x0fcf
+        ID_PRODUCT = 0x1008
+
+    class USB3Driver(USBDriver):
+        ID_VENDOR  = 0x0fcf
+        ID_PRODUCT = 0x1008
+
     drivers.append(USB2Driver)
+    drivers.append(USB3Driver)
 
 except ImportError:
     pass

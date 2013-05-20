@@ -27,6 +27,11 @@ It's possible that other manufactures using ANT+/ANT-FS, such as Suunto and
 Timex might work, but have *never* been tested as far as I know. Please let
 me know if you have any success with devices that are not listed here.
 
+The following USB sticks are known to work:
+
+ - ANT USBStick2 (0fcf:1008 Dynastream Innovations, Inc.)
+ - ANT USBStick3 (0fcf:1009 Dynastream Innovations, Inc.)
+
 Usage
 ==============================================================================
 
