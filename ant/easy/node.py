@@ -64,10 +64,6 @@ class Node():
         _logger.debug("done requesting message %#02x", messageId)
         return self.wait_for_special(messageId)
 
-    def reset_system(self):
-        self.ant.reset_system()
-        return self.wait_for_special(Message.ID.STARTUP_MESSAGE)
-
     def set_network_key(self, network, key):
         self.ant.set_network_key(network, key)
         return self.wait_for_response(Message.ID.SET_NETWORK_KEY)
