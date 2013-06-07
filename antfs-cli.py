@@ -336,7 +336,11 @@ def main():
 
     try:
         g = AntFSCLI(options.upload)
-        g.start()
+        try:
+            g.start()
+        except:
+            g.stop()
+            raise
     except Device.ProfileVersionException as e:
         print "\nError:", str(e), "\n\nThis means that", \
                 AntFSCLI.PRODUCT_NAME, "found that your data directory " \
@@ -350,7 +354,6 @@ def main():
         for line in traceback.format_exc().splitlines():
             _logger.error("%r", line)
         print "Interrupted:", str(e)
-        g.stop()
         sys.exit(1)
 
 if __name__ == "__main__":
