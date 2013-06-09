@@ -1,6 +1,8 @@
 Requirements
 ==============================================================================
 
+- Python 2.7+
+
 - PyUSB 1.0 (seems to be a bug which makes it segfaults on version before
   Alpha 2). It is recommended to use pip to install PyUSB:
   
