@@ -6,6 +6,10 @@ Requirements
   
   pip install pyusb
 
+  Alternatively you can install it from GitHub:
+
+  https://github.com/walac/pyusb
+
 - Install udev rules (recommended). This is only needed if you want to avoid
   running the program as root. Install with:
 
