@@ -203,11 +203,14 @@ def main():
 
     try:
         g = Garmin()
-        g.start()
+        try:
+            g.start()
+        except:
+            g.stop()
+            raise
     except (Exception, KeyboardInterrupt):
         traceback.print_exc()
         print "Interrupted"
-        g.stop()
         sys.exit(1)
 
 if __name__ == "__main__":
