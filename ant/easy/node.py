@@ -34,7 +34,7 @@ _logger = logging.getLogger("garmin.ant.easy.node")
 
 class Node():
     
-    def __init__(self, idVendor, idProduct):
+    def __init__(self):
         
         self._responses_cond = threading.Condition()
         self._responses      = collections.deque()
@@ -45,7 +45,7 @@ class Node():
         
         self.channels = {}
         
-        self.ant = Ant(idVendor, idProduct)
+        self.ant = Ant()
         
         self._running = True
         
@@ -63,10 +63,6 @@ class Node():
         self.ant.request_message(0, messageId)
         _logger.debug("done requesting message %#02x", messageId)
         return self.wait_for_special(messageId)
-
-    def reset_system(self):
-        self.ant.reset_system()
-        return self.wait_for_special(Message.ID.STARTUP_MESSAGE)
 
     def set_network_key(self, network, key):
         self.ant.set_network_key(network, key)

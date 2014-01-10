@@ -41,6 +41,14 @@ class Directory:
     def get_files(self):
         return self._files
 
+    def print_list(self):
+        print "Index\tType\tFIT Type\tFIT Number\tSize\tDate\tFIT Flags\tFlags"
+        for f in self.get_files():
+            print f.get_index(), "\t", f.get_type(), "\t",\
+                  f.get_fit_sub_type(), "\t", f.get_fit_file_number(), "\t",\
+                  f.get_size(), "\t", f.get_date(), "\t", f._typ_flags, "\t",\
+                  f.get_flags_string()
+
     @staticmethod
     def parse(data):
         _logger.debug("Parse '%s' as directory", data)
@@ -67,7 +75,17 @@ class File:
         FIT     = 0x80
 
     class Identifier:
-        pass
+        DEVICE           = 1
+        SETTING          = 2
+        SPORT_SETTING    = 3
+        ACTIVITY         = 4
+        WORKOUT          = 5
+        COURSE           = 6
+        WEIGHT           = 9
+        TOTALS           = 10
+        GOALS            = 11
+        BLOOD_PRESSURE   = 14
+        ACTIVITY_SUMMARY = 20
 
     def  __init__(self, index, typ, ident, typ_flags, flags, size, date):
         self._index = index
@@ -87,21 +105,35 @@ class File:
     def get_identifier(self):
         return self._ident
 
+    def get_fit_sub_type(self):
+        return self._ident[0]
+
+    def get_fit_file_number(self):
+        return struct.unpack("<xH", self._ident)[0]
+
     def get_size(self):
         return self._size
 
     def get_date(self):
         return self._date
 
+    def get_flags_string(self):
+        s  = "r" if self._flags & 0b00001000 == 0 else "-"
+        s += "w" if self._flags & 0b00010000 == 0 else "-"
+        s += "e" if self._flags & 0b00100000 == 0 else "-"
+        s += "a" if self._flags & 0b01000000 == 0 else "-"
+        s += "A" if self._flags & 0b10000000 == 0 else "-"
+        return s
+
     @staticmethod
     def parse(data):
         _logger.debug("Parse '%s' (%d) as file %s", data, len(data), type(data))
 
         # i1, i2, i3 -> three byte integer, not supported by struct
-        (index, data_type, data_i1, data_i2, data_i3, data_flags, flags, \
-            file_size, file_date) = struct.unpack("<HB3BBBII", data)
+        (index, data_type, data_flags, flags, file_size, file_date) \
+                 = struct.unpack("<HB3xBBII", data)
         file_date  = datetime.datetime.fromtimestamp(file_date + 631065600)
-        identifier = data_i1 + data_i2 << 8 + data_i3 << 16
+        identifier = data[3:6]
 
         return File(index, data_type, identifier, data_flags, flags, file_size, file_date)
 

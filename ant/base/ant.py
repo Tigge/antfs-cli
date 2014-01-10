@@ -33,77 +33,17 @@ import usb.util
 
 from message import Message
 from commons import format_list
+from driver import find_driver
 
 _logger = logging.getLogger("garmin.ant.base.ant")
 
 class Ant():
 
-    def __init__(self, idVendor, idProduct):
+    _RESET_WAIT = 1
 
-        # Find USB device
-        _logger.debug("USB Find device, vendor %#04x, product %#04x", idVendor, idProduct)
-        dev = usb.core.find(idVendor=idVendor, idProduct=idProduct)
+    def __init__(self):
 
-        # was it found?
-        if dev is None:
-            raise ValueError('Device not found')
-
-        _logger.debug("USB Config values:")
-        for cfg in dev:
-            _logger.debug(" Config %s", cfg.bConfigurationValue)
-            for intf in cfg:
-                _logger.debug("  Interface %s, Alt %s", str(intf.bInterfaceNumber), str(intf.bAlternateSetting))
-                for ep in intf:
-                    _logger.debug("   Endpoint %s", str(ep.bEndpointAddress))
-
-        # unmount a kernel driver (TODO: should probably reattach later)
-        try:
-            if dev.is_kernel_driver_active(0):
-                _logger.debug("A kernel driver active, detatching")
-                dev.detach_kernel_driver(0)
-            else:
-                _logger.debug("No kernel driver active")
-        except NotImplementedError as e:
-            _logger.warning("Could not check if kernel driver was active, not implemented in usb backend")
-
-        # set the active configuration. With no arguments, the first
-        # configuration will be the active one
-        dev.set_configuration()
-        dev.reset()
-        #dev.set_configuration()
-
-        # get an endpoint instance
-        cfg = dev.get_active_configuration()
-        interface_number = cfg[(0,0)].bInterfaceNumber
-        alternate_setting = usb.control.get_interface(dev, interface_number)
-        intf = usb.util.find_descriptor(
-            cfg, bInterfaceNumber = interface_number,
-            bAlternateSetting = alternate_setting
-        )
-
-        self._out = usb.util.find_descriptor(
-            intf,
-            # match the first OUT endpoint
-            custom_match = \
-            lambda e: \
-                usb.util.endpoint_direction(e.bEndpointAddress) == \
-                usb.util.ENDPOINT_OUT
-        )
-
-        _logger.debug("UBS Endpoint out: %s, %s", self._out, self._out.bEndpointAddress)
-
-        self._in = usb.util.find_descriptor(
-            intf,
-            # match the first OUT endpoint
-            custom_match = \
-            lambda e: \
-                usb.util.endpoint_direction(e.bEndpointAddress) == \
-                usb.util.ENDPOINT_IN
-        )
-
-        _logger.debug("UBS Endpoint in: %s, %s", self._in, self._in.bEndpointAddress)
-
-        assert self._out is not None and self._in is not None
+        self._driver = find_driver()
 
         self._message_queue_cond = threading.Condition()
         self._message_queue      = collections.deque()
@@ -116,8 +56,12 @@ class Ant():
 
         self._running = True
 
+        self._driver.open()
+
         self._worker_thread = threading.Thread(target=self._worker, name="ant.base")
         self._worker_thread.start()
+
+        self.reset_system()
 
     def start(self):
         self._main()
@@ -161,6 +105,9 @@ class Ant():
         while self._running:
             try:
                 message = self.read_message()
+                
+                if message == None:
+                    break
 
                 # TODO: flag and extended for broadcast, acknowledge, and burst
 
@@ -252,24 +199,23 @@ class Ant():
 
     def write_message(self, message):
         data = message.get()
-        self._out.write(data + array.array('B', [0x00, 0x00]))
+        self._driver.write(data)
         _logger.debug("Write data: %s", format_list(data))
 
 
     def read_message(self):
-        # If we have a message in buffer already, return it
-        if len(self._buffer) >= 5 and len(self._buffer) >= self._buffer[1] + 4:
-            packet       = self._buffer[:self._buffer[1] + 4]
-            self._buffer = self._buffer[self._buffer[1] + 4:]
-            
-            return Message.parse(packet)
-        # Otherwise, read some data and call the function again
-        else:
-            data = self._in.read(4096)
-            self._buffer.extend(data)
-            _logger.debug("Read data: %s (now have %s in buffer)",
-                          format_list(data), format_list(self._buffer))
-            return self.read_message()
+        while self._running:
+            # If we have a message in buffer already, return it
+            if len(self._buffer) >= 5 and len(self._buffer) >= self._buffer[1] + 4:
+                packet       = self._buffer[:self._buffer[1] + 4]
+                self._buffer = self._buffer[self._buffer[1] + 4:]
+                return Message.parse(packet)
+            # Otherwise, read some data and call the function again
+            else:
+                data = self._driver.read()
+                self._buffer.extend(data)
+                _logger.debug("Read data: %s (now have %s in buffer)",
+                              format_list(data), format_list(self._buffer))
 
     # Ant functions
 
@@ -316,6 +262,7 @@ class Ant():
     def reset_system(self):
         message = Message(Message.ID.RESET_SYSTEM, [0x00])
         self.write_message(message)
+        time.sleep(self._RESET_WAIT)
 
     def request_message(self, channel, messageId):
         message = Message(Message.ID.REQUEST_MESSAGE, [channel, messageId])
@@ -338,12 +285,14 @@ class Ant():
         _logger.debug("Send burst transfer, chan %s, data %s", channel, data)
         packets = len(data) / 8
         for i in range(packets):
-            sequence = i % 4
-            if i == packets - 1:
+            sequence = ((i - 1) % 3) + 1
+            if i == 0:
+                sequence = 0
+            elif i == packets - 1:
                 sequence = sequence | 0b100
             channel_seq = channel | sequence << 5
             packet_data = data[i * 8:i * 8 + 8]
-            _logger.debug("Send burst transfer, packet %d, data %s", i, packet_data)
+            _logger.debug("Send burst transfer, packet %d, seq %d, data %s", i, sequence, packet_data)
             self.send_burst_transfer_packet(channel_seq, packet_data, first=i==0)
 
     def response_function(self, channel, event, data):
