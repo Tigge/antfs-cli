@@ -33,6 +33,7 @@ import scripting
 
 import array
 import logging
+import datetime
 import time
 from optparse import OptionParser   
 import os
@@ -273,39 +274,35 @@ class Garmin(Application):
 
     def _get_progress_callback(self):
         def callback(new_progress):
-            diff = int(new_progress * 10.0) - int(callback.progress * 10.0)
-            sys.stdout.write("." * diff)
+            delta = time.time() - callback.start_time
+            eta = datetime.timedelta(seconds=int(delta / new_progress - delta))
+            s = "[{0:<30}] ETA: {1}".format("." * int(new_progress * 30), eta)
+            sys.stdout.write(s)
             sys.stdout.flush()
-            callback.progress = new_progress
-        callback.progress = 0.0
+            sys.stdout.write("\b" * len(s))
+        callback.start_time = time.time()
         return callback
 
     def download_file(self, fil):
 
-        sys.stdout.write("Downloading " + self.get_filename(fil) + " [")
+        sys.stdout.write("Downloading {0}: ".format(self.get_filename(fil)))
         sys.stdout.flush()
-        def callback(new_progress):
-            diff = int(new_progress * 10.0) - int(callback.progress * 10.0)
-            sys.stdout.write("." * diff)
-            sys.stdout.flush()
-            callback.progress = new_progress
-        callback.progress = 0.0
         data = self.download(fil.get_index(), self._get_progress_callback())
         with open(self.get_filepath(fil), "w") as fd:
             data.tofile(fd)
-        sys.stdout.write("]\n")
+        sys.stdout.write("\n")
         sys.stdout.flush()
         
         self.scriptr.run_download(self.get_filepath(fil), fil.get_fit_sub_type())
 
     def upload_file(self, typ, filename):
-        sys.stdout.write("Uploading " + filename + " [")
+        sys.stdout.write("Uploading {0}: ".format(filename))
         sys.stdout.flush()
         with open(os.path.join(self._device.get_path(), _filetypes[typ],
                 filename), 'r') as fd:
             data = array.array('B', fd.read())
         index = self.create(typ, data, self._get_progress_callback())
-        sys.stdout.write("]\n")
+        sys.stdout.write("\n")
         sys.stdout.flush()
         return index
 
