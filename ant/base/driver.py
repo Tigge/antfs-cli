@@ -241,7 +241,7 @@ def find_driver():
     
     print "Driver available:", drivers
     
-    for driver in drivers:
+    for driver in reversed(drivers):
         if driver.find():
             print " - Using:", driver
             return driver()
