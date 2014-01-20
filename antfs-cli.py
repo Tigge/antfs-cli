@@ -29,6 +29,7 @@ from ant.fs.manager import Application, AntFSAuthenticationException
 from ant.fs.file import File
 
 import utilities
+import scripting
 
 import array
 import logging
@@ -134,7 +135,11 @@ class AntFSCLI(Application):
         
         _logger.debug("Creating directories")
         self.config_dir = utilities.XDG(self.PRODUCT_NAME).get_config_dir()
+        self.script_dir = os.path.join(self.config_dir, "scripts")
         utilities.makedirs_if_not_exists(self.config_dir)
+        utilities.makedirs_if_not_exists(self.script_dir)
+        
+        self.scriptr  = scripting.Runner(self.script_dir)
         
         self.device = None
 
@@ -271,6 +276,8 @@ class AntFSCLI(Application):
             data.tofile(fd)
         sys.stdout.write("]\n")
         sys.stdout.flush()
+        
+        self.scriptr.run_download(self.get_filepath(fil), fil.get_fit_sub_type())
 
     def upload_file(self, typ, filename):
         with open(os.path.join(self._device.get_path(), _filetypes[typ],
