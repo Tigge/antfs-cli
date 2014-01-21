@@ -5,7 +5,7 @@ Requirements
 
 - PyUSB 1.0 (seems to be a bug which makes it segfaults on version before
   Alpha 2). It is recommended to use pip to install PyUSB:
-  
+
   pip install pyusb
 
   Alternatively you can install it from GitHub:
@@ -16,6 +16,8 @@ Requirements
   running the program as root. Install with:
 
   sudo cp resources/ant-usbstick2.rules /etc/udev/rules.d
+
+  and then reboot your system for the rules to apply.
 
 Supported devices
 ==============================================================================
