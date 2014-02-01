@@ -212,7 +212,7 @@ class AntFSCLI(Application):
         for filetype in _filetypes:
             remote_files[filetype] = []
         for fil in directory.get_files():
-            if fil.get_fit_sub_type() in remote_files:
+            if fil.get_fit_sub_type() in remote_files and fil.is_readable():
                 remote_files[fil.get_fit_sub_type()] += [fil]
 
         # Calculate remote and local file diff
