@@ -55,7 +55,8 @@ _directories = {
     "sports":     File.Identifier.SPORT_SETTING,
     "totals":     File.Identifier.TOTALS,
     "weight":     File.Identifier.WEIGHT,
-    "workouts":   File.Identifier.WORKOUT}
+    "workouts":   File.Identifier.WORKOUT,
+    "steps":      File.Identifier.STEPS}
 
 _filetypes = dict((v, k) for (k, v) in _directories.items())
 
