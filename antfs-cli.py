@@ -44,18 +44,19 @@ import traceback
 _logger = logging.getLogger()
 
 _directories = {
-    ".":          File.Identifier.DEVICE,
-    "activities": File.Identifier.ACTIVITY,
-    "courses":    File.Identifier.COURSE,
-    #"profile":   File.Identifier.?
-    #"goals?":    File.Identifier.GOALS,
-    #"bloodprs":  File.Identifier.BLOOD_PRESSURE,
-    #"summaries": File.Identifier.ACTIVITY_SUMMARY,
-    "settings":   File.Identifier.SETTING,
-    "sports":     File.Identifier.SPORT_SETTING,
-    "totals":     File.Identifier.TOTALS,
-    "weight":     File.Identifier.WEIGHT,
-    "workouts":   File.Identifier.WORKOUT}
+    ".":            File.Identifier.DEVICE,
+    "activities":   File.Identifier.ACTIVITY,
+    "courses":      File.Identifier.COURSE,
+    "monitoring_b": File.Identifier.MONITORING_B,
+    #"profile":     File.Identifier.?
+    #"goals?":      File.Identifier.GOALS,
+    #"bloodprs":    File.Identifier.BLOOD_PRESSURE,
+    #"summaries":   File.Identifier.ACTIVITY_SUMMARY,
+    "settings":     File.Identifier.SETTING,
+    "sports":       File.Identifier.SPORT_SETTING,
+    "totals":       File.Identifier.TOTALS,
+    "weight":       File.Identifier.WEIGHT,
+    "workouts":     File.Identifier.WORKOUT}
 
 _filetypes = dict((v, k) for (k, v) in _directories.items())
 
