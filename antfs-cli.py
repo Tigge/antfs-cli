@@ -53,7 +53,7 @@ _directories = {
     #"bloodprs":    File.Identifier.BLOOD_PRESSURE,
     #"summaries":   File.Identifier.ACTIVITY_SUMMARY,
     "settings":     File.Identifier.SETTING,
-    "sports":       File.Identifier.SPORT_SETTING,
+    "sports":       File.Identifier.SPORT,
     "totals":       File.Identifier.TOTALS,
     "weight":       File.Identifier.WEIGHT,
     "workouts":     File.Identifier.WORKOUT}
