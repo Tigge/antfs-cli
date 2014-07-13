@@ -297,7 +297,8 @@ class Application:
             _logger.debug("Wait for response...")
             try:
                 response = self._get_command()
-                if response._get_argument("response") == DownloadResponse.Response.OK:
+                resp = response._get_argument("response")
+                if resp == DownloadResponse.Response.OK:
                     remaining    = response._get_argument("remaining")
                     offset       = response._get_argument("offset")
                     total        = offset + remaining
@@ -311,6 +312,8 @@ class Application:
                         return data
                     crc = response._get_argument("crc")
                     offset = total
+                elif resp == DownloadResponse.Response.NOT_READABLE:
+                    return data
                 else:
                     raise AntFSDownloadException("Download request failed: ",
                             response._get_argument("response"))
