@@ -275,7 +275,10 @@ class Garmin(Application):
     def _get_progress_callback(self):
         def callback(new_progress):
             delta = time.time() - callback.start_time
-            eta = datetime.timedelta(seconds=int(delta / new_progress - delta))
+            if new_progress != 0.0:
+                eta = datetime.timedelta(seconds=int(delta / new_progress - delta))
+            else:
+                eta = "Unknown"
             s = "[{0:<30}] ETA: {1}".format("." * int(new_progress * 30), eta)
             sys.stdout.write(s)
             sys.stdout.flush()
