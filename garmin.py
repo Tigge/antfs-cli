@@ -35,7 +35,7 @@ import array
 import logging
 import datetime
 import time
-from optparse import OptionParser   
+from optparse import OptionParser
 import os
 import struct
 import sys
@@ -61,18 +61,18 @@ _filetypes = dict((v, k) for (k, v) in _directories.items())
 
 
 class Device:
-    
+
     class ProfileVersionException(Exception):
         pass
-    
+
     _PROFILE_VERSION      = 1
     _PROFILE_VERSION_FILE = "profile_version"
-    
+
     def __init__(self, basedir, serial, name):
         self._path   = os.path.join(basedir, str(serial))
         self._serial = serial
         self._name   = name
-        
+
         # Check profile version, if not a new device
         if os.path.isdir(self._path):
             if self.get_profile_version() < self._PROFILE_VERSION:
@@ -119,7 +119,7 @@ class Device:
                 return d
         except:
             return None
-            
+
     def write_passkey(self, passkey):
 
         with open(os.path.join(self._path, "authfile"), 'wb') as f:
@@ -135,15 +135,15 @@ class Garmin(Application):
 
     def __init__(self, uploading):
         Application.__init__(self)
-        
+
         _logger.debug("Creating directories")
         self.config_dir = utilities.XDG(self.PRODUCT_NAME).get_config_dir()
         self.script_dir = os.path.join(self.config_dir, "scripts")
         utilities.makedirs_if_not_exists(self.config_dir)
         utilities.makedirs_if_not_exists(self.script_dir)
-        
+
         self.scriptr  = scripting.Runner(self.script_dir)
-        
+
         self.device = None
         self._uploading = uploading
 
@@ -153,7 +153,7 @@ class Garmin(Application):
         channel.set_rf_freq(50)
         channel.set_search_waveform([0x53, 0x00])
         channel.set_id(0, 0x01, 0)
-        
+
         channel.open()
         #channel.request_message(Message.ID.RESPONSE_CHANNEL_STATUS)
         print "Searching..."
@@ -168,11 +168,11 @@ class Garmin(Application):
         _logger.debug("on authentication")
         serial, name = self.authentication_serial()
         self._device = Device(self.config_dir, serial, name)
-        
+
         passkey = self._device.read_passkey()
         print "Authenticating with", name, "(" + str(serial) + ")"
         _logger.debug("serial %s, %r, %r", name, serial, passkey)
-        
+
         if passkey != None:
             try:
                 print " - Passkey:",
@@ -197,7 +197,7 @@ class Garmin(Application):
 
         directory = self.download_directory()
         #directory.print_list()
-        
+
         # Map local files to FIT file types
         local_files  = {}
         for folder, filetype in _directories.items():
@@ -227,8 +227,9 @@ class Garmin(Application):
                     local_files[filetype])
             upload_total += len(uploading[filetype])
 
-        print "Downloading", download_total, "file(s)", \
-              "and uploading", upload_total, "file(s)"
+        print "Downloading", download_total, "file(s)"
+        if self._uploading:
+            print "and uploading", upload_total, "file(s)"
 
         # Download missing files:
         for files in downloading.values():
@@ -292,7 +293,7 @@ class Garmin(Application):
             data.tofile(fd)
         sys.stdout.write("\n")
         sys.stdout.flush()
-        
+
         self.scriptr.run_download(self.get_filepath(fil), fil.get_fit_sub_type())
 
     def upload_file(self, typ, filename):
@@ -307,12 +308,12 @@ class Garmin(Application):
         return index
 
 def main():
-    
+
     parser = OptionParser()
     parser.add_option("--upload", action="store_true", dest="upload", default=False, help="enable uploading")
     parser.add_option("--debug", action="store_true", dest="debug", default=False, help="enable debug")
     (options, args) = parser.parse_args()
-    
+
     # Find out what time it is
     # used for logging filename.
     currentTime = time.strftime("%Y%m%d-%H%M%S")
