@@ -229,7 +229,7 @@ class AntFSCLI(Application):
             upload_total += len(uploading[filetype])
 
         print "Downloading", download_total, "file(s)"
-        if self.uploading:
+        if self._uploading:
               print " and uploading", upload_total, "file(s)"
 
         # Download missing files:
