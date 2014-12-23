@@ -128,7 +128,7 @@ class Device:
 class AntFSCLI(Application):
     PRODUCT_NAME = "antfs-cli"
 
-    def __init__(self, uploading):
+    def __init__(self, uploading, pair):
         Application.__init__(self)
 
         _logger.debug("Creating directories")
@@ -141,6 +141,7 @@ class AntFSCLI(Application):
 
         self.device = None
         self._uploading = uploading
+        self._pair = pair
 
     def setup_channel(self, channel):
         channel.set_period(4096)
@@ -168,9 +169,10 @@ class AntFSCLI(Application):
         print("Authenticating with", name, "(" + str(serial) + ")")
         _logger.debug("serial %s, %r, %r", name, serial, passkey)
 
-        if passkey is not None:
+        if passkey is not None and not self._pair:
             try:
                 print(" - Passkey:", end=" ")
+                sys.stdout.flush()
                 self.authentication_passkey(passkey)
                 print("OK")
                 return True
@@ -180,6 +182,7 @@ class AntFSCLI(Application):
         else:
             try:
                 print(" - Pairing:", end=" ")
+                sys.stdout.flush()
                 passkey = self.authentication_pair(self.PRODUCT_NAME)
                 self._device.write_passkey(passkey)
                 print("OK")
@@ -303,10 +306,11 @@ class AntFSCLI(Application):
 
 
 def main():
-    parser = ArgumentParser()
-    parser.add_argument("--upload", action="store_true", dest="upload", default=False, help="enable uploading")
-    parser.add_argument("--debug", action="store_true", dest="debug", default=False, help="enable debug")
-    options = parser.parse_args()
+    parser = ArgumentParser(description="Extracts FIT files from ANT-FS based sport watches.")
+    parser.add_argument("--upload", action="store_true", help="enable uploading")
+    parser.add_argument("--debug", action="store_true", help="enable debug")
+    parser.add_argument("--pair", action="store_true", help="force pairing even if already paired")
+    args = parser.parse_args()
 
     # Find out what time it is
     # used for logging filename.
@@ -324,11 +328,11 @@ def main():
     handler.setFormatter(formatter)
     _logger.addHandler(handler)
 
-    if options.debug:
+    if args.debug:
         _logger.addHandler(logging.StreamHandler())
 
     try:
-        g = AntFSCLI(options.upload)
+        g = AntFSCLI(args.upload, args.pair)
         try:
             g.start()
         finally:
