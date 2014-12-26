@@ -20,6 +20,7 @@
 #
 # chmod +x /path/to/40-upload_to_garmin_connect.py
 
+from __future__ import absolute_import, print_function
 
 import errno
 import os
@@ -28,6 +29,7 @@ import sys
 
 # CHANGE ME:
 gupload = "/path/to/bin/gupload.py"
+
 
 def main(action, filename):
 
@@ -39,14 +41,14 @@ def main(action, filename):
                                    stderr=subprocess.PIPE)
         (data, _) = process.communicate()
     except OSError as e:
-        print "Could not send to Garmin", gupload, \
-              "-", errno.errorcode[e.errno], os.strerror(e.errno)
+        print("Could not send to Garmin", gupload, \
+              "-", errno.errorcode[e.errno], os.strerror(e.errno))
         return -1
 
     if process.returncode != 0:
-        print "gupload.py exited with error code", process.returncode
+        print("gupload.py exited with error code", process.returncode)
         return -1
-    print "Successfully uploaded %s to Garmin Connect" % (filename);
+    print("Successfully uploaded %s to Garmin Connect" % (filename))
     return 0
 
 if __name__ == "__main__":

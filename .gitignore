@@ -2,3 +2,5 @@
 *.orig
 *~
 *.log
+*.iml
+*.egg-info/
