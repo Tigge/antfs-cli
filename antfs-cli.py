@@ -196,57 +196,52 @@ class AntFSCLI(Application):
         directory = self.download_directory()
         # directory.print_list()
 
-        # Map local files to FIT file types
-        local_files = {}
+        # Map local filenames to FIT file types
+        local_files = []
         for folder, filetype in _directories.items():
-            local_files[filetype] = []
             path = os.path.join(self._device.get_path(), folder)
             for filename in os.listdir(path):
                 if os.path.splitext(filename)[1].lower() == ".fit":
-                    local_files[filetype] += [filename]
+                    local_files.append((filename, filetype))
 
-        # Map remote files to FIT file types
-        remote_files = {}
-        for filetype in _filetypes:
-            remote_files[filetype] = []
+        # Map remote filenames to FIT file objects
+        remote_files = []
         for fil in directory.get_files():
-            if fil.get_fit_sub_type() in remote_files and fil.is_readable():
-                remote_files[fil.get_fit_sub_type()] += [fil]
+            if fil.get_fit_sub_type() in _filetypes and fil.is_readable():
+                remote_files.append((self.get_filename(fil), fil))
 
         # Calculate remote and local file diff
-        # TODO: rework when adding delete support
-        downloading, uploading, download_total, upload_total = {}, {}, 0, 0
-        for filetype in _filetypes:
-            downloading[filetype] = list(filter(lambda f: self.get_filename(f)
-                                                          not in local_files[filetype], remote_files[filetype]))
-            download_total += len(downloading[filetype])
-            uploading[filetype] = list(filter(lambda name: name not in
-                                                           map(self.get_filename, remote_files[filetype]),
-                                              local_files[filetype]))
-            upload_total += len(uploading[filetype])
+        local_names = set(name for (name, filetype) in local_files)
+        remote_names = set(name for (name, fil) in remote_files)
+        downloading = [fil
+                       for name, fil in remote_files
+                       if name not in local_names]
+        uploading = [(name, filetype)
+                     for name, filetype in local_files
+                     if name not in remote_names]
 
-        print("Downloading", download_total, "file(s)")
+        print("Downloading", len(downloading), "file(s)")
         if self._uploading:
-            print(" and uploading", upload_total, "file(s)")
+            print(" and uploading", len(uploading), "file(s)")
 
         # Download missing files:
-        for files in downloading.values():
-            for fileobject in files:
-                self.download_file(fileobject)
+        for fileobject in downloading:
+            self.download_file(fileobject)
 
         # Upload missing files:
-        if upload_total > 0 and self._uploading:
+        if uploading and self._uploading:
             # Upload
             results = {}
-            for typ, files in uploading.items():
-                for filename in files:
-                    index = self.upload_file(typ, filename)
-                    results[index] = (filename, typ)
-            # Rename
+            for filename, typ in uploading:
+                index = self.upload_file(typ, filename)
+                results[index] = (filename, typ)
+
+            # Rename uploaded files locally
             directory = self.download_directory()
             for index, (filename, typ) in results.items():
                 try:
-                    file_object = list(filter(lambda f: f.get_index() == index, directory.get_files()))[0]
+                    file_object = next(f for f in directory.get_files()
+                                       if f.get_index() == index)
                     src = os.path.join(self._device.get_path(), _filetypes[typ], filename)
                     dst = self.get_filepath(file_object)
                     print(" - Renamed", src, "to", dst)
