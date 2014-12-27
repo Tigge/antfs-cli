@@ -128,7 +128,7 @@ class Device:
 class AntFSCLI(Application):
     PRODUCT_NAME = "antfs-cli"
 
-    def __init__(self, uploading, pair):
+    def __init__(self, args):
         Application.__init__(self)
 
         _logger.debug("Creating directories")
@@ -140,8 +140,9 @@ class AntFSCLI(Application):
         self.scriptr = scripting.Runner(self.script_dir)
 
         self.device = None
-        self._uploading = uploading
-        self._pair = pair
+        self._uploading = args.upload
+        self._pair = args.pair
+        self._skip_archived = args.skip_archived
 
     def setup_channel(self, channel):
         channel.set_period(4096)
@@ -219,6 +220,12 @@ class AntFSCLI(Application):
         uploading = [(name, filetype)
                      for name, filetype in local_files
                      if name not in remote_names]
+
+        # Remove archived files from the list
+        if self._skip_archived:
+            downloading = [fil
+                           for fil in downloading
+                           if not fil.is_archived()]
 
         print("Downloading", len(downloading), "file(s)")
         if self._uploading:
@@ -305,6 +312,7 @@ def main():
     parser.add_argument("--upload", action="store_true", help="enable uploading")
     parser.add_argument("--debug", action="store_true", help="enable debug")
     parser.add_argument("--pair", action="store_true", help="force pairing even if already paired")
+    parser.add_argument("-a", "--skip-archived", action="store_true", help="don't download files marked as 'archived' on the watch")
     args = parser.parse_args()
 
     # Find out what time it is
@@ -327,7 +335,7 @@ def main():
         _logger.addHandler(logging.StreamHandler())
 
     try:
-        g = AntFSCLI(args.upload, args.pair)
+        g = AntFSCLI(args)
         try:
             g.start()
         finally:
