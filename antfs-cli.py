@@ -76,7 +76,7 @@ class Device:
             if self.get_profile_version() < self._PROFILE_VERSION:
                 raise Device.ProfileVersionException("Profile version mismatch, too old")
             elif self.get_profile_version() > self._PROFILE_VERSION:
-                raise Device.ProfileVersionException("Profile version mismatch, to new")
+                raise Device.ProfileVersionException("Profile version mismatch, too new")
 
         # Create directories
         utilities.makedirs_if_not_exists(self._path)
@@ -109,7 +109,6 @@ class Device:
             return 0
 
     def read_passkey(self):
-
         try:
             with open(os.path.join(self._path, "authfile"), 'rb') as f:
                 d = array.array('B', f.read())
@@ -119,7 +118,6 @@ class Device:
             return None
 
     def write_passkey(self, passkey):
-
         with open(os.path.join(self._path, "authfile"), 'wb') as f:
             passkey.tofile(f)
             _logger.debug("wrote authfile: %r, %r", self._serial, passkey)
@@ -193,7 +191,6 @@ class AntFSCLI(Application):
                 return False
 
     def on_transport(self, beacon):
-
         directory = self.download_directory()
         # directory.print_list()
 
@@ -257,14 +254,15 @@ class AntFSCLI(Application):
                     print(" - Failed", index, filename, e)
 
     def get_filename(self, fil):
-        return str.format("{0}_{1}_{2}.fit",
-                          fil.get_date().strftime("%Y-%m-%d_%H-%M-%S"),
-                          fil.get_fit_sub_type(), fil.get_fit_file_number())
+        return "{0}_{1}_{2}.fit".format(
+            fil.get_date().strftime("%Y-%m-%d_%H-%M-%S"),
+            fil.get_fit_sub_type(),
+            fil.get_fit_file_number())
 
     def get_filepath(self, fil):
-        path = os.path.join(self._device.get_path(),
-                            _filetypes[fil.get_fit_sub_type()])
-        return os.path.join(path, self.get_filename(fil))
+        return os.path.join(self._device.get_path(),
+                            _filetypes[fil.get_fit_sub_type()],
+                            self.get_filename(fil))
 
     def download_file(self, fil):
         sys.stdout.write("Downloading {0}: ".format(self.get_filename(fil)))
@@ -322,10 +320,10 @@ def main():
     # Set up logging
     _logger.setLevel(logging.DEBUG)
 
-    # If you add new module/logger name longer than the 15 characters just increase the value after %(name).
-    # The longest module/logger name now is "ant.base" and "ant.easy".
+    # If you add new module/logger name longer than the 16 characters just increase the value after %(name).
+    # The longest module/logger name now is "ant.easy.channel".
     formatter = logging.Formatter(
-        fmt='%(threadName)-10s %(asctime)s  %(name)-15s  %(levelname)-8s  %(message)s (%(filename)s:%(lineno)d)')
+        fmt="%(threadName)-10s %(asctime)s  %(name)-16s  %(levelname)-8s  %(message)s (%(filename)s:%(lineno)d)")
 
     handler = logging.FileHandler(currentTime + "-" + AntFSCLI.PRODUCT_NAME + ".log", "w")
     handler.setFormatter(formatter)
@@ -341,7 +339,7 @@ def main():
         finally:
             g.stop()
     except Device.ProfileVersionException as e:
-        print("\nError:%s\n\nThis means that %s found that your data directory "
+        print("\nError: %s\n\nThis means that %s found that your data directory "
               "structure was too old or too new. The best option is "
               "probably to let %s recreate your "
               "folder by deleting your data folder, after backing it up, "
