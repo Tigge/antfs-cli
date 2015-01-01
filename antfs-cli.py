@@ -285,15 +285,20 @@ class AntFSCLI(Application):
 
     @staticmethod
     def _get_progress_callback():
+        start_time = time.time()
+
         def callback(new_progress):
-            delta = time.time() - callback.start_time
-            eta = datetime.timedelta(seconds=int(delta / new_progress - delta))
-            s = "[{0:<30}] ETA: {1}".format("." * int(new_progress * 30), eta)
+            s = "[{0:<30}]".format("." * int(new_progress * 30))
+            if new_progress == 0:
+                s += " started"
+            else:
+                delta = time.time() - start_time
+                eta = datetime.timedelta(seconds=int(delta / new_progress - delta))
+                s += " ETA: {0}".format(eta)
             sys.stdout.write(s)
             sys.stdout.flush()
             sys.stdout.write("\b" * len(s))
 
-        callback.start_time = time.time()
         return callback
 
 
