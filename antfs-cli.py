@@ -28,7 +28,7 @@ import array
 import logging
 import datetime
 import time
-from optparse import OptionParser
+from argparse import ArgumentParser
 import os
 import sys
 import traceback
@@ -298,10 +298,10 @@ class AntFSCLI(Application):
 
 
 def main():
-    parser = OptionParser()
-    parser.add_option("--upload", action="store_true", dest="upload", default=False, help="enable uploading")
-    parser.add_option("--debug", action="store_true", dest="debug", default=False, help="enable debug")
-    (options, args) = parser.parse_args()
+    parser = ArgumentParser()
+    parser.add_argument("--upload", action="store_true", dest="upload", default=False, help="enable uploading")
+    parser.add_argument("--debug", action="store_true", dest="debug", default=False, help="enable debug")
+    options = parser.parse_args()
 
     # Find out what time it is
     # used for logging filename.
