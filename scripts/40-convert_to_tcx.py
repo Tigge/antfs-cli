@@ -25,12 +25,15 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
+from __future__ import absolute_import, print_function
+
 import errno
 import os
 import subprocess
 import sys
 
 fittotcx = "/path/to/FIT-to-TCX/fittotcx.py"
+
 
 def main(action, filename, fit_type):
 
@@ -56,16 +59,16 @@ def main(action, filename, fit_type):
                                    stderr=subprocess.PIPE)
         (data, _) = process.communicate()
     except OSError as e:
-        print "Could not run Convert to TCX -", fittotcx, \
-              "-", errno.errorcode[e.errno], os.strerror(e.errno)
+        print("Could not run Convert to TCX -", fittotcx, \
+              "-", errno.errorcode[e.errno], os.strerror(e.errno))
         return -1
 
     if process.returncode != 0:
-        print "Convert to TCX exited with error code", process.returncode
+        print("Convert to TCX exited with error code", process.returncode)
         return -1
 
     # Write result
-    f = file(os.path.join(targetdir, targetfile), 'w')
+    f = open(os.path.join(targetdir, targetfile), 'w')
     f.write(data)
     f.close()
     return 0

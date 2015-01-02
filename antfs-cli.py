@@ -22,58 +22,55 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-#from ant.base import Message
-#from ant.easy.node import Node, Message
-#from ant.easy.channel import Channel
-from ant.fs.manager import Application, AntFSAuthenticationException
-from ant.fs.file import File
-
-import utilities
-import scripting
+from __future__ import absolute_import, print_function
 
 import array
 import logging
 import datetime
 import time
-from optparse import OptionParser   
+from optparse import OptionParser
 import os
-import struct
 import sys
 import traceback
+
+from ant.fs.manager import Application, AntFSAuthenticationException
+from ant.fs.file import File
+import utilities
+import scripting
+
 
 _logger = logging.getLogger()
 
 _directories = {
-    ".":            File.Identifier.DEVICE,
-    "activities":   File.Identifier.ACTIVITY,
-    "courses":      File.Identifier.COURSE,
+    ".": File.Identifier.DEVICE,
+    "activities": File.Identifier.ACTIVITY,
+    "courses": File.Identifier.COURSE,
     "monitoring_b": File.Identifier.MONITORING_B,
-    #"profile":     File.Identifier.?
-    #"goals?":      File.Identifier.GOALS,
-    #"bloodprs":    File.Identifier.BLOOD_PRESSURE,
-    #"summaries":   File.Identifier.ACTIVITY_SUMMARY,
-    "settings":     File.Identifier.SETTING,
-    "sports":       File.Identifier.SPORT,
-    "totals":       File.Identifier.TOTALS,
-    "weight":       File.Identifier.WEIGHT,
-    "workouts":     File.Identifier.WORKOUT}
+    # "profile":     File.Identifier.?
+    # "goals?":      File.Identifier.GOALS,
+    # "bloodprs":    File.Identifier.BLOOD_PRESSURE,
+    # "summaries":   File.Identifier.ACTIVITY_SUMMARY,
+    "settings": File.Identifier.SETTING,
+    "sports": File.Identifier.SPORT,
+    "totals": File.Identifier.TOTALS,
+    "weight": File.Identifier.WEIGHT,
+    "workouts": File.Identifier.WORKOUT}
 
 _filetypes = dict((v, k) for (k, v) in _directories.items())
 
 
 class Device:
-    
     class ProfileVersionException(Exception):
         pass
-    
-    _PROFILE_VERSION      = 1
+
+    _PROFILE_VERSION = 1
     _PROFILE_VERSION_FILE = "profile_version"
-    
+
     def __init__(self, basedir, serial, name):
-        self._path   = os.path.join(basedir, str(serial))
+        self._path = os.path.join(basedir, str(serial))
         self._serial = serial
-        self._name   = name
-        
+        self._name = name
+
         # Check profile version, if not a new device
         if os.path.isdir(self._path):
             if self.get_profile_version() < self._PROFILE_VERSION:
@@ -90,7 +87,7 @@ class Device:
         # Write profile version (If none)
         path = os.path.join(self._path, self._PROFILE_VERSION_FILE)
         if not os.path.exists(path):
-            with open(path, 'wb') as f:
+            with open(path, 'w') as f:
                 f.write(str(self._PROFILE_VERSION))
 
     def get_path(self):
@@ -120,7 +117,7 @@ class Device:
                 return d
         except:
             return None
-            
+
     def write_passkey(self, passkey):
 
         with open(os.path.join(self._path, "authfile"), 'wb') as f:
@@ -128,23 +125,20 @@ class Device:
             _logger.debug("wrote authfile: %r, %r", self._serial, passkey)
 
 
-
-
 class AntFSCLI(Application):
-
     PRODUCT_NAME = "antfs-cli"
 
     def __init__(self, uploading):
         Application.__init__(self)
-        
+
         _logger.debug("Creating directories")
         self.config_dir = utilities.XDG(self.PRODUCT_NAME).get_config_dir()
         self.script_dir = os.path.join(self.config_dir, "scripts")
         utilities.makedirs_if_not_exists(self.config_dir)
         utilities.makedirs_if_not_exists(self.script_dir)
-        
-        self.scriptr  = scripting.Runner(self.script_dir)
-        
+
+        self.scriptr = scripting.Runner(self.script_dir)
+
         self.device = None
         self._uploading = uploading
 
@@ -154,10 +148,10 @@ class AntFSCLI(Application):
         channel.set_rf_freq(50)
         channel.set_search_waveform([0x53, 0x00])
         channel.set_id(0, 0x01, 0)
-        
+
         channel.open()
-        #channel.request_message(Message.ID.RESPONSE_CHANNEL_STATUS)
-        print "Searching..."
+        # channel.request_message(Message.ID.RESPONSE_CHANNEL_STATUS)
+        print("Searching...")
 
     def on_link(self, beacon):
         _logger.debug("on link, %r, %r", beacon.get_serial(),
@@ -169,38 +163,38 @@ class AntFSCLI(Application):
         _logger.debug("on authentication")
         serial, name = self.authentication_serial()
         self._device = Device(self.config_dir, serial, name)
-        
+
         passkey = self._device.read_passkey()
-        print "Authenticating with", name, "(" + str(serial) + ")"
+        print("Authenticating with", name, "(" + str(serial) + ")")
         _logger.debug("serial %s, %r, %r", name, serial, passkey)
-        
-        if passkey != None:
+
+        if passkey is not None:
             try:
-                print " - Passkey:",
+                print(" - Passkey:", end=" ")
                 self.authentication_passkey(passkey)
-                print "OK"
+                print("OK")
                 return True
             except AntFSAuthenticationException as e:
-                print "FAILED"
+                print("FAILED")
                 return False
         else:
             try:
-                print " - Pairing:",
+                print(" - Pairing:", end=" ")
                 passkey = self.authentication_pair(self.PRODUCT_NAME)
                 self._device.write_passkey(passkey)
-                print "OK"
+                print("OK")
                 return True
             except AntFSAuthenticationException as e:
-                print "FAILED"
+                print("FAILED")
                 return False
 
     def on_transport(self, beacon):
 
         directory = self.download_directory()
-        #directory.print_list()
-        
+        # directory.print_list()
+
         # Map local files to FIT file types
-        local_files  = {}
+        local_files = {}
         for folder, filetype in _directories.items():
             local_files[filetype] = []
             path = os.path.join(self._device.get_path(), folder)
@@ -220,17 +214,17 @@ class AntFSCLI(Application):
         # TODO: rework when adding delete support
         downloading, uploading, download_total, upload_total = {}, {}, 0, 0
         for filetype in _filetypes:
-            downloading[filetype] = filter(lambda fil: self.get_filename(fil)
-                    not in local_files[filetype], remote_files[filetype])
+            downloading[filetype] = list(filter(lambda f: self.get_filename(f)
+                                                          not in local_files[filetype], remote_files[filetype]))
             download_total += len(downloading[filetype])
-            uploading[filetype] = filter(lambda name: name not in
-                    map(self.get_filename, remote_files[filetype]),
-                    local_files[filetype])
+            uploading[filetype] = list(filter(lambda name: name not in
+                                                           map(self.get_filename, remote_files[filetype]),
+                                              local_files[filetype]))
             upload_total += len(uploading[filetype])
 
-        print "Downloading", download_total, "file(s)"
+        print("Downloading", download_total, "file(s)")
         if self._uploading:
-              print " and uploading", upload_total, "file(s)"
+            print(" and uploading", upload_total, "file(s)")
 
         # Download missing files:
         for files in downloading.values():
@@ -243,38 +237,54 @@ class AntFSCLI(Application):
             results = {}
             for typ, files in uploading.items():
                 for filename in files:
-                    #print "upload", typ, filename
                     index = self.upload_file(typ, filename)
-                    #print "got index", index
                     results[index] = (filename, typ)
             # Rename
             directory = self.download_directory()
-            #directory.print_list()
             for index, (filename, typ) in results.items():
-                #print "rename for", index, filename, typ
-                #print "candidates:", filter(lambda f: f.get_index() == index, directory.get_files())
                 try:
-                    file_object = filter(lambda f: f.get_index() == index,
-                            directory.get_files())[0]
+                    file_object = list(filter(lambda f: f.get_index() == index, directory.get_files()))[0]
                     src = os.path.join(self._device.get_path(), _filetypes[typ], filename)
                     dst = self.get_filepath(file_object)
-                    print " - Renamed", src, "to", dst
+                    print(" - Renamed", src, "to", dst)
                     os.rename(src, dst)
                 except Exception as e:
-                    print " - Failed", index, filename, e
+                    print(" - Failed", index, filename, e)
 
     def get_filename(self, fil):
         return str.format("{0}_{1}_{2}.fit",
-                fil.get_date().strftime("%Y-%m-%d_%H-%M-%S"),
-                fil.get_fit_sub_type(), fil.get_fit_file_number())
+                          fil.get_date().strftime("%Y-%m-%d_%H-%M-%S"),
+                          fil.get_fit_sub_type(), fil.get_fit_file_number())
 
     def get_filepath(self, fil):
         path = os.path.join(self._device.get_path(),
-                _filetypes[fil.get_fit_sub_type()])
+                            _filetypes[fil.get_fit_sub_type()])
         return os.path.join(path, self.get_filename(fil))
 
+    def download_file(self, fil):
+        sys.stdout.write("Downloading {0}: ".format(self.get_filename(fil)))
+        sys.stdout.flush()
+        data = self.download(fil.get_index(), AntFSCLI._get_progress_callback())
+        with open(self.get_filepath(fil), "wb") as fd:
+            data.tofile(fd)
+        sys.stdout.write("\n")
+        sys.stdout.flush()
 
-    def _get_progress_callback(self):
+        self.scriptr.run_download(self.get_filepath(fil), fil.get_fit_sub_type())
+
+    def upload_file(self, typ, filename):
+        sys.stdout.write("Uploading {0}: ".format(filename))
+        sys.stdout.flush()
+        with open(os.path.join(self._device.get_path(), _filetypes[typ],
+                               filename), 'rb') as fd:
+            data = array.array('B', fd.read())
+        index = self.create(typ, data, AntFSCLI._get_progress_callback())
+        sys.stdout.write("\n")
+        sys.stdout.flush()
+        return index
+
+    @staticmethod
+    def _get_progress_callback():
         def callback(new_progress):
             delta = time.time() - callback.start_time
             eta = datetime.timedelta(seconds=int(delta / new_progress - delta))
@@ -282,39 +292,17 @@ class AntFSCLI(Application):
             sys.stdout.write(s)
             sys.stdout.flush()
             sys.stdout.write("\b" * len(s))
+
         callback.start_time = time.time()
         return callback
 
-    def download_file(self, fil):
-
-        sys.stdout.write("Downloading {0}: ".format(self.get_filename(fil)))
-        sys.stdout.flush()
-        data = self.download(fil.get_index(), self._get_progress_callback())
-        with open(self.get_filepath(fil), "w") as fd:
-            data.tofile(fd)
-        sys.stdout.write("\n")
-        sys.stdout.flush()
-        
-        self.scriptr.run_download(self.get_filepath(fil), fil.get_fit_sub_type())
-
-    def upload_file(self, typ, filename):
-        sys.stdout.write("Uploading {0}: ".format(filename))
-        sys.stdout.flush()
-        with open(os.path.join(self._device.get_path(), _filetypes[typ],
-                filename), 'r') as fd:
-            data = array.array('B', fd.read())
-        index = self.create(typ, data, self._get_progress_callback())
-        sys.stdout.write("\n")
-        sys.stdout.flush()
-        return index
 
 def main():
-    
     parser = OptionParser()
     parser.add_option("--upload", action="store_true", dest="upload", default=False, help="enable uploading")
     parser.add_option("--debug", action="store_true", dest="debug", default=False, help="enable debug")
     (options, args) = parser.parse_args()
-    
+
     # Find out what time it is
     # used for logging filename.
     currentTime = time.strftime("%Y%m%d-%H%M%S")
@@ -324,7 +312,8 @@ def main():
 
     # If you add new module/logger name longer than the 15 characters just increase the value after %(name).
     # The longest module/logger name now is "ant.base" and "ant.easy".
-    formatter = logging.Formatter(fmt='%(threadName)-10s %(asctime)s  %(name)-15s  %(levelname)-8s  %(message)s (%(filename)s:%(lineno)d)')
+    formatter = logging.Formatter(
+        fmt='%(threadName)-10s %(asctime)s  %(name)-15s  %(levelname)-8s  %(message)s (%(filename)s:%(lineno)d)')
 
     handler = logging.FileHandler(currentTime + "-" + AntFSCLI.PRODUCT_NAME + ".log", "w")
     handler.setFormatter(formatter)
@@ -337,23 +326,22 @@ def main():
         g = AntFSCLI(options.upload)
         try:
             g.start()
-        except:
+        finally:
             g.stop()
-            raise
     except Device.ProfileVersionException as e:
-        print "\nError:", str(e), "\n\nThis means that", \
-                AntFSCLI.PRODUCT_NAME, "found that your data directory " \
-                "stucture was too old or too new. The best option is " \
-                "probably to let", AntFSCLI.PRODUCT_NAME, "recreate your " \
-                "folder by deleting your data folder, after backing it up, " \
-                "and let all your files be redownloaded from your sports " \
-                "watch."
+        print("\nError:%s\n\nThis means that %s found that your data directory "
+              "structure was too old or too new. The best option is "
+              "probably to let %s recreate your "
+              "folder by deleting your data folder, after backing it up, "
+              "and let all your files be redownloaded from your sports "
+              "watch." % (e, AntFSCLI.PRODUCT_NAME, AntFSCLI.PRODUCT_NAME))
     except (Exception, KeyboardInterrupt) as e:
         traceback.print_exc()
         for line in traceback.format_exc().splitlines():
             _logger.error("%r", line)
-        print "Interrupted:", str(e)
-        sys.exit(1)
+        print("Interrupted:", str(e))
+        return 1
+
 
 if __name__ == "__main__":
     sys.exit(main())

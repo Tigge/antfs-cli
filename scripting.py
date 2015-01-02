@@ -20,19 +20,20 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
+from __future__ import absolute_import, print_function
+
 import errno
 import os
 import subprocess
 import threading
 
-class Runner:
 
+class Runner:
     def __init__(self, directory):
         self.directory = directory
-        
-        # TODO: loop over scripts, check if they are runnable, warn
-        #       then don't warn at runtime.
 
+        # TODO: loop over scripts, check if they are runnable, warn
+        # then don't warn at runtime.
 
     def get_scripts(self):
         scripts = []
@@ -47,8 +48,8 @@ class Runner:
                 subprocess.call([os.path.join(self.directory, script),
                                  action, filename, str(fit_type)])
             except OSError as e:
-                print " - Could not run", script, "-",\
-                      errno.errorcode[e.errno], os.strerror(e.errno)
+                print(" - Could not run", script, "-", \
+                      errno.errorcode[e.errno], os.strerror(e.errno))
 
     def run_action(self, action, filename, fit_type):
         t = threading.Thread(target=self._run_action, args=(action, filename, fit_type))

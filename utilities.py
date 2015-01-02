@@ -20,8 +20,11 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
+from __future__ import absolute_import, print_function
+
 import errno
 import os
+
 
 def makedirs_if_not_exists(path):
     try:
@@ -29,17 +32,16 @@ def makedirs_if_not_exists(path):
     except OSError as e:
         if e.errno == errno.EEXIST:
             pass
-        else: 
+        else:
             raise
 
 
 class XDGError(Exception):
-    
     def __init__(self, message):
         self.message = message
 
-class XDG:
 
+class XDG:
     def __init__(self, application):
         self._application = application
 
@@ -50,7 +52,7 @@ class XDG:
             return os.path.join(os.environ["HOME"], ".local/share", self._application)
         else:
             raise XDGError("Neither XDG_DATA_HOME nor HOME found in the environment")
-        
+
     def get_config_dir(self):
         if "XDG_CONFIG_HOME" in os.environ:
             return os.path.join(os.environ["XDG_CONFIG_HOME"], self._application)
