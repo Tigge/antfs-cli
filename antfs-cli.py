@@ -76,7 +76,7 @@ class Device:
             if self.get_profile_version() < self._PROFILE_VERSION:
                 raise Device.ProfileVersionException("Profile version mismatch, too old")
             elif self.get_profile_version() > self._PROFILE_VERSION:
-                raise Device.ProfileVersionException("Profile version mismatch, to new")
+                raise Device.ProfileVersionException("Profile version mismatch, too new")
 
         # Create directories
         utilities.makedirs_if_not_exists(self._path)
@@ -109,7 +109,6 @@ class Device:
             return 0
 
     def read_passkey(self):
-
         try:
             with open(os.path.join(self._path, "authfile"), 'rb') as f:
                 d = array.array('B', f.read())
@@ -119,7 +118,6 @@ class Device:
             return None
 
     def write_passkey(self, passkey):
-
         with open(os.path.join(self._path, "authfile"), 'wb') as f:
             passkey.tofile(f)
             _logger.debug("wrote authfile: %r, %r", self._serial, passkey)
@@ -128,7 +126,7 @@ class Device:
 class AntFSCLI(Application):
     PRODUCT_NAME = "antfs-cli"
 
-    def __init__(self, uploading):
+    def __init__(self, args):
         Application.__init__(self)
 
         _logger.debug("Creating directories")
@@ -140,7 +138,9 @@ class AntFSCLI(Application):
         self.scriptr = scripting.Runner(self.script_dir)
 
         self.device = None
-        self._uploading = uploading
+        self._uploading = args.upload
+        self._pair = args.pair
+        self._skip_archived = args.skip_archived
 
     def setup_channel(self, channel):
         channel.set_period(4096)
@@ -168,9 +168,10 @@ class AntFSCLI(Application):
         print("Authenticating with", name, "(" + str(serial) + ")")
         _logger.debug("serial %s, %r, %r", name, serial, passkey)
 
-        if passkey is not None:
+        if passkey is not None and not self._pair:
             try:
                 print(" - Passkey:", end=" ")
+                sys.stdout.flush()
                 self.authentication_passkey(passkey)
                 print("OK")
                 return True
@@ -180,6 +181,7 @@ class AntFSCLI(Application):
         else:
             try:
                 print(" - Pairing:", end=" ")
+                sys.stdout.flush()
                 passkey = self.authentication_pair(self.PRODUCT_NAME)
                 self._device.write_passkey(passkey)
                 print("OK")
@@ -189,61 +191,61 @@ class AntFSCLI(Application):
                 return False
 
     def on_transport(self, beacon):
-
         directory = self.download_directory()
         # directory.print_list()
 
-        # Map local files to FIT file types
-        local_files = {}
+        # Map local filenames to FIT file types
+        local_files = []
         for folder, filetype in _directories.items():
-            local_files[filetype] = []
             path = os.path.join(self._device.get_path(), folder)
             for filename in os.listdir(path):
                 if os.path.splitext(filename)[1].lower() == ".fit":
-                    local_files[filetype] += [filename]
+                    local_files.append((filename, filetype))
 
-        # Map remote files to FIT file types
-        remote_files = {}
-        for filetype in _filetypes:
-            remote_files[filetype] = []
+        # Map remote filenames to FIT file objects
+        remote_files = []
         for fil in directory.get_files():
-            if fil.get_fit_sub_type() in remote_files and fil.is_readable():
-                remote_files[fil.get_fit_sub_type()] += [fil]
+            if fil.get_fit_sub_type() in _filetypes and fil.is_readable():
+                remote_files.append((self.get_filename(fil), fil))
 
         # Calculate remote and local file diff
-        # TODO: rework when adding delete support
-        downloading, uploading, download_total, upload_total = {}, {}, 0, 0
-        for filetype in _filetypes:
-            downloading[filetype] = list(filter(lambda f: self.get_filename(f)
-                                                          not in local_files[filetype], remote_files[filetype]))
-            download_total += len(downloading[filetype])
-            uploading[filetype] = list(filter(lambda name: name not in
-                                                           map(self.get_filename, remote_files[filetype]),
-                                              local_files[filetype]))
-            upload_total += len(uploading[filetype])
+        local_names = set(name for (name, filetype) in local_files)
+        remote_names = set(name for (name, fil) in remote_files)
+        downloading = [fil
+                       for name, fil in remote_files
+                       if name not in local_names or not fil.is_archived()]
+        uploading = [(name, filetype)
+                     for name, filetype in local_files
+                     if name not in remote_names]
 
-        print("Downloading", download_total, "file(s)")
+        # Remove archived files from the list
+        if self._skip_archived:
+            downloading = [fil
+                           for fil in downloading
+                           if not fil.is_archived()]
+
+        print("Downloading", len(downloading), "file(s)")
         if self._uploading:
-            print(" and uploading", upload_total, "file(s)")
+            print(" and uploading", len(uploading), "file(s)")
 
         # Download missing files:
-        for files in downloading.values():
-            for fileobject in files:
-                self.download_file(fileobject)
+        for fileobject in downloading:
+            self.download_file(fileobject)
 
         # Upload missing files:
-        if upload_total > 0 and self._uploading:
+        if uploading and self._uploading:
             # Upload
             results = {}
-            for typ, files in uploading.items():
-                for filename in files:
-                    index = self.upload_file(typ, filename)
-                    results[index] = (filename, typ)
-            # Rename
+            for filename, typ in uploading:
+                index = self.upload_file(typ, filename)
+                results[index] = (filename, typ)
+
+            # Rename uploaded files locally
             directory = self.download_directory()
             for index, (filename, typ) in results.items():
                 try:
-                    file_object = list(filter(lambda f: f.get_index() == index, directory.get_files()))[0]
+                    file_object = next(f for f in directory.get_files()
+                                       if f.get_index() == index)
                     src = os.path.join(self._device.get_path(), _filetypes[typ], filename)
                     dst = self.get_filepath(file_object)
                     print(" - Renamed", src, "to", dst)
@@ -252,14 +254,15 @@ class AntFSCLI(Application):
                     print(" - Failed", index, filename, e)
 
     def get_filename(self, fil):
-        return str.format("{0}_{1}_{2}.fit",
-                          fil.get_date().strftime("%Y-%m-%d_%H-%M-%S"),
-                          fil.get_fit_sub_type(), fil.get_fit_file_number())
+        return "{0}_{1}_{2}.fit".format(
+            fil.get_date().strftime("%Y-%m-%d_%H-%M-%S"),
+            fil.get_fit_sub_type(),
+            fil.get_fit_file_number())
 
     def get_filepath(self, fil):
-        path = os.path.join(self._device.get_path(),
-                            _filetypes[fil.get_fit_sub_type()])
-        return os.path.join(path, self.get_filename(fil))
+        return os.path.join(self._device.get_path(),
+                            _filetypes[fil.get_fit_sub_type()],
+                            self.get_filename(fil))
 
     def download_file(self, fil):
         sys.stdout.write("Downloading {0}: ".format(self.get_filename(fil)))
@@ -303,10 +306,12 @@ class AntFSCLI(Application):
 
 
 def main():
-    parser = ArgumentParser()
-    parser.add_argument("--upload", action="store_true", dest="upload", default=False, help="enable uploading")
-    parser.add_argument("--debug", action="store_true", dest="debug", default=False, help="enable debug")
-    options = parser.parse_args()
+    parser = ArgumentParser(description="Extracts FIT files from ANT-FS based sport watches.")
+    parser.add_argument("--upload", action="store_true", help="enable uploading")
+    parser.add_argument("--debug", action="store_true", help="enable debug")
+    parser.add_argument("--pair", action="store_true", help="force pairing even if already paired")
+    parser.add_argument("-a", "--skip-archived", action="store_true", help="don't download files marked as 'archived' on the watch")
+    args = parser.parse_args()
 
     # Find out what time it is
     # used for logging filename.
@@ -315,26 +320,26 @@ def main():
     # Set up logging
     _logger.setLevel(logging.DEBUG)
 
-    # If you add new module/logger name longer than the 15 characters just increase the value after %(name).
-    # The longest module/logger name now is "ant.base" and "ant.easy".
+    # If you add new module/logger name longer than the 16 characters just increase the value after %(name).
+    # The longest module/logger name now is "ant.easy.channel".
     formatter = logging.Formatter(
-        fmt='%(threadName)-10s %(asctime)s  %(name)-15s  %(levelname)-8s  %(message)s (%(filename)s:%(lineno)d)')
+        fmt="%(threadName)-10s %(asctime)s  %(name)-16s  %(levelname)-8s  %(message)s (%(filename)s:%(lineno)d)")
 
     handler = logging.FileHandler(currentTime + "-" + AntFSCLI.PRODUCT_NAME + ".log", "w")
     handler.setFormatter(formatter)
     _logger.addHandler(handler)
 
-    if options.debug:
+    if args.debug:
         _logger.addHandler(logging.StreamHandler())
 
     try:
-        g = AntFSCLI(options.upload)
+        g = AntFSCLI(args)
         try:
             g.start()
         finally:
             g.stop()
     except Device.ProfileVersionException as e:
-        print("\nError:%s\n\nThis means that %s found that your data directory "
+        print("\nError: %s\n\nThis means that %s found that your data directory "
               "structure was too old or too new. The best option is "
               "probably to let %s recreate your "
               "folder by deleting your data folder, after backing it up, "
