@@ -1,7 +1,7 @@
 Scripting
 ==============================================================================
 
-In the location for scripts, usually ~/.config/antfs-cli/XXXXX/scripts
+In the location for scripts, usually ~/.config/antfs-cli/scripts
 (but see README, for more precise location) you can add executable scripts
 and programs.
 
@@ -13,7 +13,7 @@ The three arguments to the executables are:
  - Action (DOWNLOAD, UPLOAD or DELETE -- depending on what action caused the
    script to run)
 
- - File name 
+ - File name
 
  - FIT type (e.g. 4 for an Activity, see File.Identifier in ant/fs/file.py
    for other FIT file types)

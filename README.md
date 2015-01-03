@@ -3,7 +3,7 @@ ANT-FS Client
 
 This program extracts all activity FIT files from a device and writes them
 to a folder (see file locations below). The first time it runs it attempts
-to sync with the watch. This produces an authfile which is written to the
+to sync with the watch. This produces an `authfile` which is written to the
 same folder. On startup this program will try to read that file to avoid
 having to re-sync.
 
@@ -28,15 +28,16 @@ File locations
 
 ### Simple answer (probably correct for most people)
 
-Your files are placed in ~/.config/antfs-cli/
+Your files are placed in `~/.config/antfs-cli/`
 
 ### Long answer
 
 FIT files and authfiles are stored in an the location specified by the XDG
-Base Directory specification. It uses the $XDG_CONFIG_HOME with
-$HOME/.config as backup. In this directory a antfs-cli folder is created
-in which a folder for each device is created. Both the .FIT files and
-authfile are stored in this device-specific folder.
+Base Directory specification. It uses the `$XDG_CONFIG_HOME` with
+`$HOME/.config` as backup. In this directory a `antfs-cli` folder is created
+in which a folder for each device is created. Both the `.FIT` files and
+`authfile` are stored in this device-specific folder. All logs are stored
+in a `logs` subfolder of the `antfs-cli` directory.
 
 Supported devices
 -----------------
