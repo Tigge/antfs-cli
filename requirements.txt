@@ -1,0 +1,3 @@
+# see https://caremad.io/blog/setup-vs-requirement/
+# -e .
+-e git+https://github.com/Tigge/openant.git#egg=openant

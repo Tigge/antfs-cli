@@ -1,6 +1,9 @@
 ANT-FS Client
 =============
 
+[![Build Status](https://img.shields.io/travis/Tigge/Garmin-Forerunner-610-Extractor.svg?style=flat)](http://travis-ci.org/Tigge/Garmin-Forerunner-610-Extractor)
+[![Coverage Status](http://img.shields.io/coveralls/Tigge/Garmin-Forerunner-610-Extractor.svg?style=flat)](https://coveralls.io/r/Tigge/Garmin-Forerunner-610-Extractor)
+
 This program extracts all activity FIT files from a device and writes them
 to a folder (see file locations below). The first time it runs it attempts
 to sync with the watch. This produces an `authfile` which is written to the

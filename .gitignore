@@ -4,3 +4,5 @@
 *.log
 *.iml
 *.egg-info/
+.eggs/
+.tox/
