@@ -126,18 +126,17 @@ class Device:
 class AntFSCLI(Application):
     PRODUCT_NAME = "antfs-cli"
 
-    def __init__(self, args):
+    def __init__(self, config_dir, args):
         Application.__init__(self)
 
-        _logger.debug("Creating directories")
-        self.config_dir = utilities.XDG(self.PRODUCT_NAME).get_config_dir()
-        self.script_dir = os.path.join(self.config_dir, "scripts")
-        utilities.makedirs_if_not_exists(self.config_dir)
-        utilities.makedirs_if_not_exists(self.script_dir)
+        self.config_dir = config_dir
 
-        self.scriptr = scripting.Runner(self.script_dir)
+        # Set up scripting
+        scripts_dir = os.path.join(self.config_dir, "scripts")
+        utilities.makedirs_if_not_exists(scripts_dir)
+        self.scriptr = scripting.Runner(scripts_dir)
 
-        self.device = None
+        self._device = None
         self._uploading = args.upload
         self._pair = args.pair
         self._skip_archived = args.skip_archived
@@ -313,19 +312,26 @@ def main():
     parser.add_argument("-a", "--skip-archived", action="store_true", help="don't download files marked as 'archived' on the watch")
     args = parser.parse_args()
 
-    # Find out what time it is
-    # used for logging filename.
-    currentTime = time.strftime("%Y%m%d-%H%M%S")
+    # Set up config dir
+    config_dir = utilities.XDG(AntFSCLI.PRODUCT_NAME).get_config_dir()
+    logs_dir = os.path.join(config_dir, "logs")
+    utilities.makedirs_if_not_exists(config_dir)
+    utilities.makedirs_if_not_exists(logs_dir)
 
     # Set up logging
     _logger.setLevel(logging.DEBUG)
 
-    # If you add new module/logger name longer than the 16 characters just increase the value after %(name).
+    # If you add new module/logger name longer than the 16 characters
+    # just increase the value after %(name).
     # The longest module/logger name now is "ant.easy.channel".
     formatter = logging.Formatter(
-        fmt="%(threadName)-10s %(asctime)s  %(name)-16s  %(levelname)-8s  %(message)s (%(filename)s:%(lineno)d)")
+        fmt="%(threadName)-10s %(asctime)s  %(name)-16s"
+            "  %(levelname)-8s  %(message)s (%(filename)s:%(lineno)d)")
 
-    handler = logging.FileHandler(currentTime + "-" + AntFSCLI.PRODUCT_NAME + ".log", "w")
+    log_filename = os.path.join(logs_dir, "{0}-{1}.log".format(
+        time.strftime("%Y%m%d-%H%M%S"),
+        AntFSCLI.PRODUCT_NAME))
+    handler = logging.FileHandler(log_filename, "w")
     handler.setFormatter(formatter)
     _logger.addHandler(handler)
 
@@ -333,7 +339,7 @@ def main():
         _logger.addHandler(logging.StreamHandler())
 
     try:
-        g = AntFSCLI(args)
+        g = AntFSCLI(config_dir, args)
         try:
             g.start()
         finally:
