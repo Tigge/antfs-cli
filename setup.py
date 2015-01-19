@@ -39,6 +39,7 @@ setup(name='antfs-cli',
       author='Gustav Tiger',
       author_email='gustav@tiger.name',
 
+      packages=['antfs_cli'],
       entry_points={
           'console_scripts': ['antfs-cli=antfs_cli:main']
       },
