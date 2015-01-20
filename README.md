@@ -4,11 +4,12 @@ ANT-FS Command Line Interface
 [![Build Status](https://img.shields.io/travis/Tigge/Garmin-Forerunner-610-Extractor.svg?style=flat)](http://travis-ci.org/Tigge/Garmin-Forerunner-610-Extractor)
 [![Coverage Status](http://img.shields.io/coveralls/Tigge/Garmin-Forerunner-610-Extractor.svg?style=flat)](https://coveralls.io/r/Tigge/Garmin-Forerunner-610-Extractor)
 
-This program extracts all activity FIT files from a device and writes them
-to a folder (see file locations below). The first time it runs it attempts
-to sync with the watch. This produces an `authfile` which is written to the
-same folder. On startup this program will try to read that file to avoid
-having to re-sync.
+This program (`antfs-cli`, previously Garmin-Forerunner-610-Extractor or
+Garmin-Extractor) extracts all activity FIT files from a device and writes
+them to a folder (see file locations below). The first time it runs it
+attempts to sync with the watch. This produces an `authfile` which is written
+to the same folder. On startup this program will try to read that file to
+avoid having to re-sync.
 
 Requirements
 ------------
@@ -18,7 +19,8 @@ Requirements
 Installation
 ------------
 
-Run `sudo setup.py install` to install ANT-FS Command Line Interface. This will install an `antfs-cli` binary in `/usr/bin` or similar.
+Run `sudo setup.py install` to install ANT-FS Command Line Interface. This
+will install an `antfs-cli` binary in `/usr/bin` or similar.
 
 
 Usage
@@ -62,7 +64,8 @@ Any device supported by [openant](https://github.com/Tigge/openant) should work.
 
 ### ANT-FS Devices
 
-Any compliant ANT-FS device should in theory work, but those specific devices have been reported as working:
+Any compliant ANT-FS device should in theory work, but those specific devices
+have been reported as working:
 
  - Garmin Forerunner 60
  - Garmin Forerunner 405CX
