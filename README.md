@@ -1,5 +1,5 @@
-ANT-FS Client
-=============
+ANT-FS Command Line Interface
+=============================
 
 [![Build Status](https://img.shields.io/travis/Tigge/Garmin-Forerunner-610-Extractor.svg?style=flat)](http://travis-ci.org/Tigge/Garmin-Forerunner-610-Extractor)
 [![Coverage Status](http://img.shields.io/coveralls/Tigge/Garmin-Forerunner-610-Extractor.svg?style=flat)](https://coveralls.io/r/Tigge/Garmin-Forerunner-610-Extractor)
@@ -15,10 +15,16 @@ Requirements
 
 - [openant >= 0.2](https://github.com/Tigge/openant)
 
+Installation
+------------
+
+Run `sudo setup.py install` to install ANT-FS Command Line Interface. This will install an `antfs-cli` binary in `/usr/bin` or similar.
+
+
 Usage
 -----
 
-    Usage: antfs-cli.py [options]
+    Usage: antfs-cli [options]
 
     Options:
       -h, --help  show this help message and exit
