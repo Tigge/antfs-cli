@@ -41,7 +41,7 @@ setup(name='antfs-cli',
 
       packages=['antfs_cli'],
       entry_points={
-          'console_scripts': ['antfs-cli=antfs_cli:main']
+          'console_scripts': ['antfs-cli=antfs_cli.program:main']
       },
 
       url='https://github.com/Tigge/openant',

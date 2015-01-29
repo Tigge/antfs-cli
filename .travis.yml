@@ -9,6 +9,7 @@ install:
   - pip install coveralls
 script:
   - coverage run --source=ant setup.py test
-  - python setup.py build
+  - python setup.py install
+  - antfs-cli --help
 after_success:
   - coveralls

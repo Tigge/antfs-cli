@@ -35,9 +35,8 @@ import traceback
 
 from ant.fs.manager import Application, AntFSAuthenticationException
 from ant.fs.file import File
-import utilities
-import scripting
-
+from . import utilities
+from . import scripting
 
 _logger = logging.getLogger()
 
