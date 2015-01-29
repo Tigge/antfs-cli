@@ -1,8 +1,8 @@
 ANT-FS Command Line Interface
 =============================
 
-[![Build Status](https://img.shields.io/travis/Tigge/antfs-cli.svg?style=flat)](http://travis-ci.org/Tigge/Garmin-Forerunner-610-Extractor)
-[![Coverage Status](http://img.shields.io/coveralls/Tigge/antfs-cli.svg?style=flat)](https://coveralls.io/r/Tigge/Garmin-Forerunner-610-Extractor)
+[![Build Status](https://img.shields.io/travis/Tigge/antfs-cli.svg?style=flat)](http://travis-ci.org/Tigge/antfs-cli)
+[![Coverage Status](http://img.shields.io/coveralls/Tigge/antfs-cli.svg?style=flat)](https://coveralls.io/r/Tigge/antfs-cli)
 
 This program (`antfs-cli`, previously Garmin-Forerunner-610-Extractor or
 Garmin-Extractor) extracts all activity FIT files from a device and writes
