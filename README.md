@@ -19,7 +19,7 @@ Requirements
 Installation
 ------------
 
-Run `sudo setup.py install` to install ANT-FS Command Line Interface. This
+Run `sudo python setup.py install` to install ANT-FS Command Line Interface. This
 will install an `antfs-cli` binary in `/usr/bin` or similar.
 
 
