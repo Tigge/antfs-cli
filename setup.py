@@ -55,6 +55,7 @@ setup(name='antfs-cli',
                    'Programming Language :: Python :: 3.3',
                    'Programming Language :: Python :: 3.4'],
 
+      dependency_links=['git+https://github.com/Tigge/openant.git#egg=openant-0.2'], 
       install_requires=['openant>=0.2'],
 
       test_suite='tests')
