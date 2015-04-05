@@ -211,7 +211,7 @@ class AntFSCLI(Application):
         remote_names = set(name for (name, fil) in remote_files)
         downloading = [fil
                        for name, fil in remote_files
-                       if name not in local_names or not fil.is_archived()]
+                       if name not in local_names]
         uploading = [(name, filetype)
                      for name, filetype in local_files
                      if name not in remote_names]
