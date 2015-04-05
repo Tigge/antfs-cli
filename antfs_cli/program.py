@@ -33,7 +33,7 @@ import os
 import sys
 import traceback
 
-from ant.fs.manager import Application, AntFSAuthenticationException
+from ant.fs.manager import Application, AntFSAuthenticationException, AntFSTimeException
 from ant.fs.file import File
 from . import utilities
 from . import scripting
@@ -189,6 +189,17 @@ class AntFSCLI(Application):
                 return False
 
     def on_transport(self, beacon):
+
+        # Adjust time
+        print(" - Set time:", end=" ")
+        try:
+            result = self.set_time()
+        except AntFSTimeException as e:
+            print("FAILED")
+            _logger.exception("Could not set time")
+        else:
+            print("OK")
+     
         directory = self.download_directory()
         # directory.print_list()
 

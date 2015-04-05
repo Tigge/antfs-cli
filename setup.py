@@ -31,7 +31,7 @@ except IOError:
     long_description = ''
 
 setup(name='antfs-cli',
-      version='0.2',
+      version='0.3',
 
       description='ANT-FS Command Line Interface',
       long_description=long_description,
@@ -55,7 +55,7 @@ setup(name='antfs-cli',
                    'Programming Language :: Python :: 3.3',
                    'Programming Language :: Python :: 3.4'],
 
-      dependency_links=['git+https://github.com/Tigge/openant.git#egg=openant-0.2'], 
-      install_requires=['openant>=0.2'],
+      dependency_links=['git+https://github.com/Tigge/openant.git#egg=openant-0.3'], 
+      install_requires=['openant>=0.3'],
 
       test_suite='tests')

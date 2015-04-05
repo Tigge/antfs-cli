@@ -14,7 +14,7 @@ avoid having to re-sync.
 Requirements
 ------------
 
-- [openant >= 0.2](https://github.com/Tigge/openant)
+- [openant >= 0.3](https://github.com/Tigge/openant)
 
 Installation
 ------------
