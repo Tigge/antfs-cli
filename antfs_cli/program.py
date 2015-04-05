@@ -137,6 +137,7 @@ class AntFSCLI(Application):
 
         self._device = None
         self._uploading = args.upload
+        self._time = args.time
         self._pair = args.pair
         self._skip_archived = args.skip_archived
 
@@ -189,8 +190,19 @@ class AntFSCLI(Application):
                 return False
 
     def on_transport(self, beacon):
+        #transmit time so that devices can adjust their clocks
+        if self._time:
+            print("Transfer time to device")
+            try:
+                result = self.set_time()
+            except AntFSTimeException, e:
+                print("Could not set time %s", str(e))
+                _logger.debug("Could not set time")
+            else:
+                print("Time set")
+         
         directory = self.download_directory()
-        # directory.print_list()
+        directory.print_list()
 
         # Map local filenames to FIT file types
         local_files = []
@@ -306,6 +318,7 @@ class AntFSCLI(Application):
 def main():
     parser = ArgumentParser(description="Extracts FIT files from ANT-FS based sport watches.")
     parser.add_argument("--upload", action="store_true", help="enable uploading")
+    parser.add_argument("-t","--time", action="store_true", help="send time to divice (for example to set its clock)")
     parser.add_argument("--debug", action="store_true", help="enable debug")
     parser.add_argument("--pair", action="store_true", help="force pairing even if already paired")
     parser.add_argument("-a", "--skip-archived", action="store_true", help="don't download files marked as 'archived' on the watch")
