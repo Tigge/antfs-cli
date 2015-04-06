@@ -14,7 +14,7 @@ avoid having to re-sync.
 Requirements
 ------------
 
-- [openant >= 0.2](https://github.com/Tigge/openant)
+- [openant >= 0.3](https://github.com/Tigge/openant)
 
 Installation
 ------------
@@ -29,9 +29,15 @@ Usage
     Usage: antfs-cli [options]
 
     Options:
-      -h, --help  show this help message and exit
-      --upload    enable uploading
-      --debug     enable debug
+       -h, --help           show this help message and exit
+       --upload             enable uploading
+       -t, --time           send time to divice (for example to set its clock)
+       -e, --erase          delete monitoring_b files that have already been
+                            downloaded before
+       --ls                 print files stored on device
+       --debug              enable debug
+       --pair               force pairing even if already paired
+       -a, --skip-archived  don't download files marked as 'archived' on the watch
 
 
 File locations
@@ -74,5 +80,6 @@ have been reported as working:
  - Garmin Forerunner 910XT
  - Garmin FR70
  - Garmin Swim
+ - Garmin vivofit
 
 Please let me know if you have any success with devices that are not listed here.
