@@ -139,6 +139,7 @@ class AntFSCLI(Application):
         self._uploading = args.upload
         self._time = args.time
         self._erase = args.erase
+        self._ls = args.ls
         self._pair = args.pair
         self._skip_archived = args.skip_archived
 
@@ -204,8 +205,9 @@ class AntFSCLI(Application):
          
         directory = self.download_directory()
         
-        print("Files on device:")
-        directory.print_list()
+        if self._ls:
+            print("Files on device:")
+            directory.print_list()
 
         # Map local filenames to FIT file types
         local_files = []
@@ -347,6 +349,7 @@ def main():
     parser.add_argument("--upload", action="store_true", help="enable uploading")
     parser.add_argument("-t","--time", action="store_true", help="send time to divice (for example to set its clock)")
     parser.add_argument("-e","--erase", action="store_true", help="delete monitoring_b files that have already been downloaded before")
+    parser.add_argument("--ls", action="store_true", help="print files stored on device")
     parser.add_argument("--debug", action="store_true", help="enable debug")
     parser.add_argument("--pair", action="store_true", help="force pairing even if already paired")
     parser.add_argument("-a", "--skip-archived", action="store_true", help="don't download files marked as 'archived' on the watch")
