@@ -137,6 +137,9 @@ class AntFSCLI(Application):
 
         self._device = None
         self._uploading = args.upload
+        self._time = args.time
+        self._erase = args.erase
+        self._ls = args.ls
         self._pair = args.pair
         self._skip_archived = args.skip_archived
 
@@ -189,8 +192,22 @@ class AntFSCLI(Application):
                 return False
 
     def on_transport(self, beacon):
+        #transmit time so that devices can adjust their clocks
+        if self._time:
+            print("Transfer time to device")
+            try:
+                result = self.set_time()
+            except AntFSTimeException, e:
+                print("Could not set time %s", str(e))
+                _logger.debug("Could not set time")
+            else:
+                print("Time set")
+         
         directory = self.download_directory()
-        # directory.print_list()
+        
+        if self._ls:
+            print("Files on device:")
+            directory.print_list()
 
         # Map local filenames to FIT file types
         local_files = []
@@ -211,7 +228,10 @@ class AntFSCLI(Application):
         remote_names = set(name for (name, fil) in remote_files)
         downloading = [fil
                        for name, fil in remote_files
-                       if name not in local_names or not fil.is_archived()]
+                       if name not in local_names]
+        already_downloaded = [fil
+                              for name, fil in remote_files
+                              if name in local_names and fil.get_fit_sub_type() == File.Identifier.MONITORING_B]
         uploading = [(name, filetype)
                      for name, filetype in local_files
                      if name not in remote_names]
@@ -229,7 +249,13 @@ class AntFSCLI(Application):
         # Download missing files:
         for fileobject in downloading:
             self.download_file(fileobject)
-
+        
+        #delete file
+        if self._erase:
+	    print("Erase all files that were already present before downloading")
+            for fileobject in already_downloaded:
+                self.erase_file(fileobject)
+        
         # Upload missing files:
         if uploading and self._uploading:
             # Upload
@@ -261,6 +287,21 @@ class AntFSCLI(Application):
         return os.path.join(self._device.get_path(),
                             _filetypes[fil.get_fit_sub_type()],
                             self.get_filename(fil))
+
+    def erase_file(self, fil):
+        if not isinstance(fil, File):
+             print("fil not of type File")
+             return
+        sys.stdout.write("Erasing file {0}: ".format(self.get_filename(fil)))
+        sys.stdout.flush()
+        try:
+	    self.erase(fil.get_index())
+        except AntFSDownloadException, e:
+            sys.stdout.write("Could not erase file")
+        else:
+            sys.stdout.write("Done")
+        sys.stdout.write("\n")
+        sys.stdout.flush()
 
     def download_file(self, fil):
         sys.stdout.write("Downloading {0}: ".format(self.get_filename(fil)))
@@ -306,6 +347,9 @@ class AntFSCLI(Application):
 def main():
     parser = ArgumentParser(description="Extracts FIT files from ANT-FS based sport watches.")
     parser.add_argument("--upload", action="store_true", help="enable uploading")
+    parser.add_argument("-t","--time", action="store_true", help="send time to divice (for example to set its clock)")
+    parser.add_argument("-e","--erase", action="store_true", help="delete monitoring_b files that have already been downloaded before")
+    parser.add_argument("--ls", action="store_true", help="print files stored on device")
     parser.add_argument("--debug", action="store_true", help="enable debug")
     parser.add_argument("--pair", action="store_true", help="force pairing even if already paired")
     parser.add_argument("-a", "--skip-archived", action="store_true", help="don't download files marked as 'archived' on the watch")
