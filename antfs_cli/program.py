@@ -33,8 +33,10 @@ import os
 import sys
 import traceback
 
-from ant.fs.manager import Application, AntFSAuthenticationException, AntFSTimeException
+from ant.fs.manager import Application, AntFSAuthenticationException, AntFSTimeException, AntFSDownloadException
+from ant.fs.manager import AntFSUploadException
 from ant.fs.file import File
+
 from . import utilities
 from . import scripting
 
@@ -194,7 +196,7 @@ class AntFSCLI(Application):
         print(" - Set time:", end=" ")
         try:
             result = self.set_time()
-        except AntFSTimeException as e:
+        except (AntFSTimeException, AntFSDownloadException, AntFSUploadException) as e:
             print("FAILED")
             _logger.exception("Could not set time")
         else:
