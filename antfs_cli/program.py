@@ -329,10 +329,10 @@ def main():
     parser.add_argument("--upload", action="store_true", help="enable uploading")
     parser.add_argument("--debug", action="store_true", help="enable debug")
     parser.add_argument("--pair", action="store_true", help="force pairing even if already paired")
-    parser.add_argument("-a", "--skip-archived", action="store_true", help="don't download files marked as 'archived' on the watch")
+    parser.add_argument("-r", "--newest-first", action="store_true", help="download most recent activities")
     parser.add_argument("-n", "--download-n", action="store", help="download first n files", type=int, default=None)
-    parser.add_argument("-a", "--skip-archived", action="store_true", help="don't download files marked as 'archived' on the watch")
     args = parser.parse_args()
+    parser.add_argument("-a", "--skip-archived", action="store_true", help="don't download files marked as 'archived' on the watch")
 
     # Set up config dir
     config_dir = utilities.XDG(AntFSCLI.PRODUCT_NAME).get_config_dir()
