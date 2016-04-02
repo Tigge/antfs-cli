@@ -14,7 +14,8 @@
 # username=yourgarminuser
 # password=yourgarminpass
 #
-# Then change the gupload path  (See CHANGEME in the code)
+# Then point the GUPLOAD environment variable at the path to your gupload.py
+# script (defaults to /usr/bin/gupload.py)
 #
 # Don't forget to make this script executable :
 #
@@ -27,9 +28,11 @@ import os
 import subprocess
 import sys
 
-# CHANGE ME:
-gupload = "/path/to/bin/gupload.py"
-
+gupload = os.getenv("GUPLOAD") or "/usr/bin/gupload.py"
+if not os.path.exists(gupload):
+    sys.stderr.write("%s didn't exist; ensure GcpUploader is installed, "
+                     "and set GUPLOAD correctly if necessary.\n")
+    sys.exit(1)
 
 def main(action, filename):
 
