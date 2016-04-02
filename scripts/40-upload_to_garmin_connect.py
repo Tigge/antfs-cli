@@ -48,8 +48,19 @@ def main(action, filename):
     if process.returncode != 0:
         print("gupload.py exited with error code", process.returncode)
         return -1
-    print("Successfully uploaded %s to Garmin Connect" % (filename))
-    return 0
+
+    if data.find("Status: SUCCESS ") != -1:
+        print("Successfully uploaded %s to Garmin Connect" % filename)
+        return 0
+
+    if data.find("Status: EXISTS ") != -1:
+        print("%s already uploaded to Garmin Connect" % filename)
+        return 0
+
+    print("Couldn't understand output from uploading %s to Garmin Connect:" %
+          filename)
+    print(data)
+    return -1
 
 if __name__ == "__main__":
     sys.exit(main(sys.argv[1], sys.argv[2]))
