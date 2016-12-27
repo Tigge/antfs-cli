@@ -33,6 +33,27 @@ Usage
       --upload    enable uploading
       --debug     enable debug
 
+Upload to Garmin Connect
+------------------------
+
+This program can upload automatically the activities from your watch to [Garmin Connect](https://connect.garmin.com) by using [garmin-uploader](https://github.com/La0/garmin-uploader).
+
+To setup the activity upload, follow these steps:
+
+ 1. Install upload extra dependecies
+    ```
+    sudo pip install antfs-cli[upload]
+    ```
+ 2. Setup your Garmin Connect credentials in `~/.guploadrc`
+    ```
+    [Credentials]
+    username=yourgarminuser
+    password=yourgarminpass
+    ```
+ 3. Copy the file `scripts/40-upload_to_garmin_connect.py` into the directory `~/.config/antfs-cli/scripts`
+    Make sure it is still executable.
+
+Now after every successful activity download from your watch, the activity will be uploaded to Garmin Connect.
 
 File locations
 --------------
