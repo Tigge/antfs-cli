@@ -38,7 +38,7 @@ def makedirs_if_not_exists(path):
 
 class XDGError(Exception):
     def __init__(self, message):
-        self.message = message
+        super(XDGError, self).__init__(message)
 
 
 class XDG:
