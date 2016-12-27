@@ -1,6 +1,6 @@
 # Ant
 #
-# Copyright (c) 2012, Gustav Tiger <gustav@tiger.name>
+# Copyright (c) 2016, Rhys Kidd <rhyskidd@gmail.com>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -22,4 +22,23 @@
 
 from __future__ import absolute_import, print_function
 
-__all__ = ['test_utilities']
+import unittest
+
+from antfs_cli import utilities
+
+
+class BasicUtilityTest(unittest.TestCase):
+    """Test basic utility features"""
+
+    def setUp(self):
+        """Test setup of XDG"""
+        self.dummy_device = "Garmin00XT"
+        self.xdg_object = utilities.XDG(self.dummy_device)
+
+    def test_data_dir(self):
+        """Test if operating system-appropriate data directory is located"""
+        self.assertIn(self.dummy_device, self.xdg_object.get_data_dir())
+
+    def test_config_dir(self):
+        """Test if operating system-appropriate config directory is located"""
+        self.assertIn(self.dummy_device, self.xdg_object.get_config_dir())
