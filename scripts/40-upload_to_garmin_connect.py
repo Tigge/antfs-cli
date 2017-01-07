@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 #
 # Code by Tony Bussieres <t.bussieres@gmail.com>
 # Updated by Bastien Abadie <bastien@nextcairn.com>
