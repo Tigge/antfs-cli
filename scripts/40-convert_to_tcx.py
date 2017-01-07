@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 #
 # Script to run the FIT-to-TCX converter on every new FIT file that is being
 # downloaded by antfs-cli. Installation of https://github.com/Tigge/FIT-to-TCX
