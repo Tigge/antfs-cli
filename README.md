@@ -55,6 +55,23 @@ To setup the activity upload, follow these steps:
 
 Now after every successful activity download from your watch, the activity will be uploaded to Garmin Connect.
 
+Upload to Strava
+------------------------
+This program can upload automatically the activities from your watch to [Strava](https://strava.com) by using [stravalib](https://github.com/hozn/stravalib) and [drpexe-uploader](https://github.com/mscansian/drpexe-uploader).
+
+To setup the activity upload, follow these steps:
+
+ 1. Install upload extra dependecies
+    ```
+    sudo pip install stravalib
+    ```
+ 2. Run the script `scripts/40-upload_to_strava.py` to fetch your Strava credentials. Follow the instructions to authorize [drpexe-uploader](https://github.com/mscansian/drpexe-uploader) to upload files on your behalf.
+    ```
+    ./scripts/40-upload_to_strava.py
+    ```
+ 3. Copy the file `scripts/40-upload_to_strava.py` into the directory `~/.config/antfs-cli/scripts`
+    Make sure it is still executable.
+
 File locations
 --------------
 
