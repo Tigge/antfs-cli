@@ -90,7 +90,7 @@ def start_strava_auth_flow():
     url = client.authorization_url(
         client_id=DRPEXE_CLIENT_ID,
         redirect_uri=DRPEXE_UPLOADER_API,
-        scope='write',
+        scope='activity:write',
         state='REDIRECT-%s' % LOCAL_SERVER_PORT,
     )
     print('Open the following page to authorize drpexe-uploader to '
