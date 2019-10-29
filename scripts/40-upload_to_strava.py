@@ -26,6 +26,7 @@ from __future__ import print_function, with_statement
 
 import pickle
 import sys
+import time
 import os.path
 import xdg.BaseDirectory
 
@@ -57,6 +58,16 @@ def main(action, filename):
         with open(STRAVA_CREDENTIALS_FILE, 'rb') as f:
             token_data = pickle.load(f)
             access_token = token_data['access_token']
+
+            if token_data['expires_at'] <= time.time():
+                client = Client()
+                token_data = client.refresh_access_token(client_id=CLIENT_ID,
+                                                         client_secret=CLIENT_SECRET,
+                                                         refresh_token=token_data['refresh_token'])
+                access_token = token_data['access_token']
+
+                with open(STRAVA_CREDENTIALS_FILE, 'wb') as fw:
+                    pickle.dump(token_data, fw, 0)
     except (FileNotFoundError, KeyError):
         print('No Strava credentials provided.')
         print('You first need to run the script to fetch the credentials')
