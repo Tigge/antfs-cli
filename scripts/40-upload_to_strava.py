@@ -35,7 +35,7 @@ except ImportError:  # Python 2.7
     from BaseHTTPServer import HTTPServer, BaseHTTPRequestHandler
 
 from stravalib import Client
-from stravalib.exc import ActivityUploadFailed
+from stravalib.exc import ActivityUploadFailed, AccessUnauthorized
 
 # drpexe-uploader config
 # https://github.com/mscansian/drpexe-uploader
@@ -65,6 +65,12 @@ def main(action, filename):
 
     try:
         client = Client(access_token=access_token)
+        client.get_athlete()
+    except AccessUnauthorized:
+        print('Your token has expired. Starting authentication flow\n')
+        return -2
+
+    try:
         print('Uploading {}: '.format(os.path.basename(filename)), end='')
         with open(filename, 'rb') as f:
             upload = client.upload_activity(
@@ -126,6 +132,11 @@ class AuthRequestHandler(BaseHTTPRequestHandler):
 
 if __name__ == "__main__":
     if len(sys.argv) != 1:
-        sys.exit(main(action=sys.argv[1], filename=sys.argv[2]))
+        while True:
+            return_code = main(action=sys.argv[1], filename=sys.argv[2])
+            if return_code == -2:
+                start_strava_auth_flow()
+                continue  # Authentication failed
+            sys.exit(return_code)
     start_strava_auth_flow()
     sys.exit(0)
