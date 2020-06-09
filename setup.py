@@ -33,7 +33,7 @@ except IOError:
     long_description = ''
 
 setup(name='antfs-cli',
-      version='0.3',
+      version='0.4',
 
       description='ANT-FS Command Line Interface',
       long_description=long_description,
@@ -54,12 +54,14 @@ setup(name='antfs-cli',
                    'Intended Audience :: Healthcare Industry',
                    'License :: OSI Approved :: MIT License',
                    'Programming Language :: Python :: 2.7',
-                   'Programming Language :: Python :: 3.3',
                    'Programming Language :: Python :: 3.4',
-                   'Programming Language :: Python :: 3.5'],
+                   'Programming Language :: Python :: 3.5',
+                   'Programming Language :: Python :: 3.6',
+                   'Programming Language :: Python :: 3.7',
+                   'Programming Language :: Python :: 3.8'],
 
-      dependency_links=['git+https://github.com/Tigge/openant.git#egg=openant-0.3'],
-      install_requires=['openant>=0.3'],
+      dependency_links=['git+https://github.com/Tigge/openant.git#egg=openant-0.4'],
+      install_requires=['openant>=0.4'],
       extras_require={
           'upload': ['garmin-uploader'],
       },
