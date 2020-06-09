@@ -46,6 +46,7 @@ _directories = {
     ".": File.Identifier.DEVICE,
     "activities": File.Identifier.ACTIVITY,
     "courses": File.Identifier.COURSE,
+    "waypoints": File.Identifier.WAYPOINTS,
     "monitoring_b": File.Identifier.MONITORING_B,
     # "profile":     File.Identifier.?
     # "goals?":      File.Identifier.GOALS,
