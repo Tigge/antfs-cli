@@ -1,7 +1,7 @@
 ANT-FS Command Line Interface
 =============================
 
-[![Travis branch](https://img.shields.io/travis/Tigge/antfs-cli/master.svg)](https://travis-ci.org/Tigge/antfs-cli)
+[![Travis branch](https://img.shields.io/travis/com/Tigge/antfs-cli/master.svg)](https://travis-ci.com/Tigge/antfs-cli)
 [![Coveralls branch](https://img.shields.io/coveralls/Tigge/antfs-cli/master.svg)](https://coveralls.io/r/Tigge/antfs-cli?branch=master)
 
 This program (`antfs-cli`, previously Garmin-Forerunner-610-Extractor or
