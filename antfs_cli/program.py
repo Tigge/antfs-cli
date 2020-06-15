@@ -39,6 +39,7 @@ from ant.fs.file import File
 
 from . import utilities
 from . import scripting
+from . import fit2gpx
 
 _logger = logging.getLogger()
 
@@ -60,6 +61,7 @@ _directories = {
 
 _filetypes = dict((v, k) for (k, v) in _directories.items())
 
+_navtypes = [File.Identifier.ACTIVITY, File.Identifier.COURSE, File.Identifier.WAYPOINTS]
 
 class Device:
     class ProfileVersionException(Exception):
@@ -140,7 +142,9 @@ class AntFSCLI(Application):
 
         self._device = None
         self._uploading = args.upload
+        self._courses = args.courses
         self._pair = args.pair
+        self._gpx = args.gpx
         self._skip_archived = args.skip_archived
 
     def setup_channel(self, channel):
@@ -218,7 +222,7 @@ class AntFSCLI(Application):
         remote_files = []
         for fil in directory.get_files():
             if fil.get_fit_sub_type() in _filetypes and fil.is_readable():
-                remote_files.append((self.get_filename(fil), fil))
+                remote_files.append((self.get_filename(fil, "fit"), fil))
 
         # Calculate remote and local file diff
         local_names = set(name for (name, filetype) in local_files)
@@ -235,6 +239,11 @@ class AntFSCLI(Application):
             downloading = [fil
                            for fil in downloading
                            if not fil.is_archived()]
+
+        if self._courses:
+            uploading = [fil
+                            for fil in uploading
+                            if fil[1] == File.Identifier.COURSE]
 
         print("Downloading", len(downloading), "file(s)")
         if self._uploading:
@@ -259,33 +268,39 @@ class AntFSCLI(Application):
                     file_object = next(f for f in directory.get_files()
                                        if f.get_index() == index)
                     src = os.path.join(self._device.get_path(), _filetypes[typ], filename)
-                    dst = self.get_filepath(file_object)
+                    dst = self.get_filepath(file_object, "fit")
                     print(" - Renamed", src, "to", dst)
                     os.rename(src, dst)
                 except Exception as e:
                     print(" - Failed", index, filename, e)
 
-    def get_filename(self, fil):
-        return "{0}_{1}_{2}.fit".format(
+    def get_filename(self, fil, ext):
+        return "{0}_{1}_{2}.{3}".format(
             fil.get_date().strftime("%Y-%m-%d_%H-%M-%S"),
             fil.get_fit_sub_type(),
-            fil.get_fit_file_number())
+            fil.get_fit_file_number(),
+            ext)
 
-    def get_filepath(self, fil):
+    def get_filepath(self, fil, ext):
         return os.path.join(self._device.get_path(),
                             _filetypes[fil.get_fit_sub_type()],
-                            self.get_filename(fil))
+                            self.get_filename(fil, ext))
 
     def download_file(self, fil):
-        sys.stdout.write("Downloading {0}: ".format(self.get_filename(fil)))
+        sys.stdout.write("Downloading {0}: ".format(self.get_filename(fil, "fit")))
         sys.stdout.flush()
         data = self.download(fil.get_index(), AntFSCLI._get_progress_callback())
-        with open(self.get_filepath(fil), "wb") as fd:
+        with open(self.get_filepath(fil, "fit"), "wb") as fd:
             data.tofile(fd)
         sys.stdout.write("\n")
         sys.stdout.flush()
+        
+        if self._gpx and fil.get_fit_sub_type() in _navtypes:
+            print("Converting to {0} ".format(self.get_filename(fil, "gpx")))
+            with open(self.get_filepath(fil, "gpx"), "wb") as fd:
+                fit2gpx.fit_to_gpx(data).tofile(fd)
 
-        self.scriptr.run_download(self.get_filepath(fil), fil.get_fit_sub_type())
+        self.scriptr.run_download(self.get_filepath(fil, "fit"), fil.get_fit_sub_type())
 
     def upload_file(self, typ, filename):
         sys.stdout.write("Uploading {0}: ".format(filename))
@@ -320,8 +335,10 @@ class AntFSCLI(Application):
 def main():
     parser = ArgumentParser(description="Extracts FIT files from ANT-FS based sport watches.")
     parser.add_argument("--upload", action="store_true", help="enable uploading")
+    parser.add_argument("--courses", action="store_true", help="upload only courses")
     parser.add_argument("--debug", action="store_true", help="enable debug")
     parser.add_argument("--pair", action="store_true", help="force pairing even if already paired")
+    parser.add_argument("--gpx", action="store_true", help="export .gpx files for tracks, courses and waypoints")
     parser.add_argument("-a", "--skip-archived", action="store_true", help="don't download files marked as 'archived' on the watch")
     args = parser.parse_args()
 
