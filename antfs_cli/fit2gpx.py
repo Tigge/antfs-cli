@@ -166,9 +166,12 @@ def fit_value_to_string(fit, offset, field_size, base_type_num, global_num, defi
         if enum_value != None:
             rv = enum_value
         else:
-            rv += "["
-            rv += str(value)
-            rv += "]"
+            if value == 0xFF:
+                rv = "<undefined>";
+            else:
+                rv += "["
+                rv += str(value)
+                rv += "]"
     elif base_type_num == 1: # int8
         value = struct.unpack('<b', fit[offset:offset+1])[0]
         if value == 0x7F:
@@ -349,7 +352,6 @@ def fit_to_gpx(fit):
                                     waypoints.append({})
                                     waypoints[-1]["time"] = struct.unpack('<L', fit[offset:offset+4])[0]
                             elif global_num == 31: # Course
-                                _logger.debug("<Course>")
                                 if definition_num == 5: # Name
                                     track_name = array_to_string(fit[offset:offset+16])
                                     tracks[track_name] = [];
