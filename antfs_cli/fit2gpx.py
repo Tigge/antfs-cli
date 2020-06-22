@@ -37,17 +37,22 @@ _message_type_names = {
     19 : "Lap", 20 : "Record", 21 : "Event", 22 : "", 23 : "Device Info", 24 : "", 25 : "", 26: "Workout", 27 : "Workout Step", 28 : "Schedule", 29 : "Way Point",
     30 : "Weight Scale", 31: "Course", 32 : "Course Point", 33 : "Totals", 34 : "Activity", 35 : "Software", 36 : "", 37 : "File Capabilities",
     38 : "Message Capabilities", 39 : "Field Capabilities", 49 : "File Creator", 51 : "Blood Pressure", 53 : "Speed Zone", 55 : "Monitoring",
-    74 : "???", 78 : "HRV", 79 : "User Profile ?", 101: "Length", 103 : "Monitoring Info", 104 : "???", 105 : "PAD"
+    72 : "Training File", 74 : "???", 78 : "HRV", 79 : "User Profile", 80 : "ANT RX", 81 : "ANT TX", 82: "ANT Channel Id",
+    101: "Length", 103 : "Monitoring Info", 104 : "???", 105 : "PAD", 106 : "Slave Device", 127 : "Connectivity", 128 : "Weather Conditions",
+    129 : "Weather Alert", 131 : "Cadence Zone", 132 : "HR", 142 : "Segment Lap", 149 : "Segment Leaderboard Entry", 150 : "Segment Point",
+    158 : "Workout Session", 159 : "Watchface Settings", 160 : "GPS Metadata", 161 : "Camera Event", 162 : "Timestamp Correlation",
+    164 : "Gyroscope Data", 165 : "Accelerometer Data", 167 : "3D Sensor Calibration"
 }
 
 _message_field_names = {
-    0 : ("Type", "Manufacturer", "Product", "Serial Number", "Creation Time", "Number"),
-    1 : ("", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "Workout Supported"),
+    0 : ("Type", "Manufacturer", "Product", "Serial Number", "Creation Time", "Number", "", "", "Product Name"),
+    1 : ("Languages", "Sports", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "Workout Supported", "", "Connectivity Supported"),
     2 : ("", "UTC Offset", "???", "???", "???", "???", "", "", "", "", "???", "???", "???", "???", "???", "???", "???", "???", "???", "", "", "???", "???", "???", "???", "???", "???"),
     3 : ("Name", "Gender", "Age", "Height", "Weight", "Language", "Elevation Units", "Weight Units", "HR Resting", "HR Running Max", "HR Biking Max", "HR Max", "HR Setting", "Speed Setting", "Dist Setting", "", "Power Setting", "Activity Class", "Position Setting", "", "", "???", "", "", "???"),
-    4 : ("Enabled", "HRM ANT Id", "???", "???"),
-    5 : ("", "", "", "???", "???", "???"),
-    6 : ("Name", "Sport", "SubSport", "Odometer", "Bike Spd ANT Id", "Bike Cad ANT Id", "Bike Spd/Cad ANT Id", "Bike Power ANT Id", "Custom Wheel Size", "Auto Wheel Size", "Bike Weight", "Power Calibration Factor", "Auto Wheel Calibration", "Auto Power Zero", "Id", "Spd Enabled", "Cad Enabled", "Spd/Cad Enabled", "Power Enabled", "Crank Length", "Enabled", "Bike Spd ANT Id Trans Type", "Bike Cad ANT Id Trans Type", "Bike Spd/Cad ANT Id Trans Type", "Bike Power ANT Id Trans Type"),
+    4 : ("Enabled", "HRM ANT Id", "Log HRV", "HRM ANT Id Trans Type"),
+    5 : ("Enabled", "SDM ANT Id", "SDM Cal Factor", "Odometer", "Speed Source", "SDM ANT Id Trans Type", "", "Odometer Rollover"),
+    6 : ("Name", "Sport", "SubSport", "Odometer", "Bike Spd ANT Id", "Bike Cad ANT Id", "Bike Spd/Cad ANT Id", "Bike Power ANT Id", "Custom Wheel Size", "Auto Wheel Size", "Bike Weight", "Power Calibration Factor", "Auto Wheel Calibration", "Auto Power Zero", "Id", "Spd Enabled", "Cad Enabled", "Spd/Cad Enabled", "Power Enabled", "Crank Length", "Enabled", "Bike Spd ANT Id Trans Type", "Bike Cad ANT Id Trans Type", "Bike Spd/Cad ANT Id Trans Type", "Bike Power ANT Id Trans Type", "", "", "", "", "",
+    "", "", "", "", "", "", "", "Odometer Rollover", "Front Gear Num", "Front Gear", "Rear Gear Num", "Rear Gear", "", "", "Shimano Di2 Enabled"),
     7 : ("", "Max Heart Rate", "Threshold Heart Rate", "Functional Threshold Power", "", "HR Calc Type", "PWR Calc Type", "", "???"),
     8 : ("", "High BPM", "Name"),
     9 : ("", "High Value", "Name"),
@@ -59,21 +64,61 @@ _message_field_names = {
     15 : (),
     16 : ("", "", "???", "???"),
     17 : ("", "", "", "???", "", "???"),
-    18 : ("Event", "Event Type", "Start Time", "Start Position Latitude", "Start Position Longitude", "Sport", "SubSport", "Total Elapsed Time", "Total Timer Time", "Total Distance", "Total Cycles", "Total Calories", "", "Total Fat Calories", "Average Speed", "Max Speed", "Average Heart Rate", "Max Heart Rate", "Average Cadence", "Max Cadence", "Average Power", "Max Power", "Total Ascent", "Total Descent", "Total Traning Effect", "First Lap Index", "Num Laps", "Event Group", "Trigger", "NEC Latitude", "NEC Longitude", "SWC Latitude", "SWC Longitude", "", "", "", "", "", "", "???", "", "???", "", "Swimming Stroke", "Pool Length", "", "Pool Length Unit", "", "???", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "???"),
-    19 : ("Event", "Event Type", "Start Time", "Start Position Latitude", "Start Position Longitude", "End Position Latitude", "End Position Longitude", "Total Elapsed Time", "Total Timer Time", "Total Distance", "Total Cycles", "Total Calories", "Total Fat Calories", "Average Speed", "Max Speed", "Average Heart Rate", "Max Heart Rate", "Average Cadence", "Max Cadence", "Average Power", "Max Power", "Total Ascent", "Total Descent", "Intensity", "Lap Trigger", "Sport", "Event Group", "Nec Latitude", "Nec Longitude", "Swc Latitude", "Swc Longitude", "", "", "", "", "", "", "", "", "", "", "???", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "???" ),
-    20 : ("Latitude", "Longitude", "Altitude", "Heart Rate", "Cadence", "Distance", "Speed", "Power", "Compressed Speed & Distance", "Grade", "Registance", "Time from Course", "Cycle Length", "Temperature", "Speed 1s", "Cycles", "Total Cycles", "Compressed Accumulated Power", "Accumulated Power", "Left-Right Balance"),
-    21 : ("Event", "Event Type", "Data1", "Data2", "Event Group"),
+    18 : ("Event", "Event Type", "Start Time", "Start Position Latitude", "Start Position Longitude", "Sport", "SubSport", "Total Elapsed Time", "Total Timer Time", "Total Distance", "Total Cycles", "Total Calories", "", "Total Fat Calories", "Average Speed", "Max Speed", "Average Heart Rate", "Max Heart Rate", "Average Cadence", "Max Cadence", "Average Power", "Max Power", "Total Ascent", "Total Descent", "Total Traning Effect", "First Lap Index", "Num Laps", "Event Group", "Trigger", "NEC Latitude", "NEC Longitude", "SWC Latitude", "SWC Longitude", "", "Normalized power", "Training Stress Score", "Intensity Factor", "Left-Right Balance", "", "???", "",
+    "Average Stroke Count", "Average Stroke Distance", "Swimming Stroke", "Pool Length", "Threshold power", "Pool Length Unit", "Number of Active Length", "Total Work",
+    "Average Altitude", "Max Altitude", "GPS Accuracy", "Average Grade", "Average Position Grade", "Average Negative Grade", "Max Position Grade", "Max Negative Grade",
+    "Average Temperature", "Max Temperature", "Total Moving Time", "Average Position Vertical Speed", "Average Negative Vertical Speed", "Max Position Vertical Speed",
+    "Max Negative Vertical Speed", "Min Heart Rate", "Time in Heart Rate Zone", "Time in Speed Zone", "Time in Cadence Zone", "Time in Power Zone", "Average Lap Time",
+    "Best Lap Index", "Min Altitude", "", "", "", "", "", "", "", "", "", "", "Player Score", "Opponent Score", "Opponent Name", "Stroke Count", "Zone Count",
+    "Max Ball Speed", "Average Ball Speed", "Average Vertival Oscillation", "Average Stance Time Percent", "Average Stance Time", "Average Fractional Cadence",
+    "Max Fractional Cadence", "Total Fractional Cycles", "Average Total Hemoglobin Concentration", "Min Total Hemoglobin Concentration", "Max Total Hemoglobin Concentration",
+    "Average Saturated Hemoglobin Percent", "Min Saturated Hemoglobin Percent", "Max Saturated Hemoglobin Percent", "Average Left Torque Efectiveness",
+    "Average Right Torque Efectiveness", "Average Left Pedal Smoothness", "Average Right Pedal Smoothness", "Average Combined Pedal Smoothness", "", "", "", "", "",
+    "Sport Index", "Time Standing", "Standing Count", "Average Left Platform Center Offset", "Average Right Platform Center Offset", "Average Left Power Phase",
+    "Average Left Power Phase Peak", "Average Right Power Phase", "Average Right Power Phase Peak", "Average Power Position", "Max Power Position",
+    "Average Cadence Position", "Max Cadence Position", "Enhanced Average Speed", "Enhanced Max Speed", "Enhanced Average Altitude", "Enhanced Min Altitude",
+    "Enhanced Max Altitude", "Average LEV Motor Power", "Max LEV Motor Power", "LEV Battery Consumption", "Average Vertical Ratio", "Average Stance Time Balance",
+    "Avergae Step Length", "", "", "Total Anaerobic Training Effect", "", "Average VAM"),
+    19 : ("Event", "Event Type", "Start Time", "Start Position Latitude", "Start Position Longitude", "End Position Latitude", "End Position Longitude", "Total Elapsed Time",
+    "Total Timer Time", "Total Distance", "Total Cycles", "Total Calories", "Total Fat Calories", "Average Speed", "Max Speed", "Average Heart Rate", "Max Heart Rate",
+    "Average Cadence", "Max Cadence", "Average Power", "Max Power", "Total Ascent", "Total Descent", "Intensity", "Lap Trigger", "Sport", "Event Group", "Nec Latitude",
+    "Nec Longitude", "Swc Latitude", "Swc Longitude", "", "Num Lengths", "Normalized Power", "Left-Right Balance", "First Length Index", "", "Average Stroke Distance",
+    "Swim Stroke", "Sub Sport", "Number of Active Lengths", "Total Work", "Average Altitude", "Max Altitude", "GPS Accuracy", "Average Grade", "Average Position Grade",
+    "Average Negative Grade", "Max Position Grade", "Max Negative Grade", "Average Temperature", "Max Temperature", "Total Moving Time", "Average Position Vertical Speed",
+    "Average Negative Vertical Speed", "Max Position Vertical Speed", "Max Negative Vertical Speed", "Time in HR Zone", "Time in Speed Zone", "Time in Cadence Zone",
+    "Time in Power Zone", "Repetition Num", "Min Altitude", "Min Heart Rate", "", "", "", "", "", "", "", "Workout Step Index", "", "", "Opponent Score", "Stroke Count",
+    "Zone Count", "Average Vertical Oscillation", "Average Stance Time Percent", "Average Stance Time", "Average Fractional Cadence", "Max Fractional Cadence",
+    "Total Fractional Cycles", "Player Score", "Average Total Hemoglobin Concentration", "Min Total Hemoglobin Concentration", "Max Total Hemoglobin Concentration",
+    "Average Saturated Hemoglobin Percent", "Min Saturated Hemoglobin Percent", "Max Saturated Hemoglobin Percent", "Average Left Torque Efectiveness",
+    "Average Right Torque Efectiveness", "Average Left Pedal Smoothness", "Average Right Pedal Smoothness", "Average Combined Pedal Smoothness", "", "",
+    "Time Standing", "Standing Count", "Average Left Platform Center Offset", "Average Right Platform Center Offset", "Average Left Power Phase",
+    "Average Left Power Phase Peak", "Average Right Power Phase", "Average Right Power Phase Peak", "Average Power Position", "Max Power Position",
+    "Average Cadence Position", "Max Cadence Position", "Enhanced Average Speed", "Enhanced Max Speed", "Enhanced Average Altitude", "Enhanced Min Altitude",
+    "Enhanced Max Altitude", "Average LEV Motor Power", "Max LEV Motor Power", "LEV Battery Consumption", "Average Vertical Ratio", "Average Stance Time Balance",
+    "Avergae Step Length", "Average VAM"),
+    20 : ("Latitude", "Longitude", "Altitude", "Heart Rate", "Cadence", "Distance", "Speed", "Power", "Compressed Speed & Distance", "Grade", "Resistance", "Time from Course", "Cycle Length", "Temperature", "Speed 1s", "Cycles", "Total Cycles", "Compressed Accumulated Power", "Accumulated Power", "Left-Right Balance", "GPS Accuracy",
+    "Vertical Speed", "Calories", "", "", "", "", "", "Vertical Oscillation", "Stance Time Percent", "Stance Time", "Activity Type", "Left Torque Effectiveness",
+    "Right Torque Effectiveness", "Left Pedal Smoothness", "Right Pedal Smoothness", "Combined Pedal Smoothness", "Time 128", "Stroke Type", "Zone", "Ball Speed",
+    "Cadence 256", "Fractional Cadence", "Total Hemoglobin Concentration", "Min Total Hemoglobin Concentration", "Max Total Hemoglobin Concentration",
+    "Saturated Hemoglobin Percent", "Min Saturated Hemoglobin Percent", "Max Saturated Hemoglobin Percent", "Device Index", "Left Platform Center Offset",
+    "Right Platform Center Offset", "Left Power Phase", "Left Power Phase Peak", "Right Power Phase", "Right Power Phase Peak", "Enhanced Speed", "", "", "", "",
+    "Enhanced Altitude", "", "", "Battery State of Charge", "LEV Motor Power", "Vertical ratio", "Stance Time Balance", "Step Length", "", "", "", "", "",
+    "Absolute Pressure", "Depth", "Next Stop Depth", "Next Stop Time", "Time to Surface", "NDL Time", "CNS Load", "N2 Load"),
+    21 : ("Event", "Event Type", "Data16", "Data", "Event Group", "", "", "Score", "Opponent Score", "Front Gear Num", "Front Gear", "Rear Gear Num", "Rear Gear",
+          "Device Index"),
     22 : ("???", "???", "???", "???", "???", "???", "???", "???", "???"),
-    23 : ("Device Index", "Device Type", "Manufacturer", "Serial Number", "Product", "Software Version", "Hardware Version", "???", "???", "???", "Battery Voltage", "Battery Status", "", "", "", "???", "???"),
+    23 : ("Device Index", "Device Type", "Manufacturer", "Serial Number", "Product", "Software Version", "Hardware Version", "Cummulative Operating time", "???", "???", "Battery Voltage", "Battery Status", "", "", "", "???", "???", "", "Sensor Position", "Descriptor", "ANT Transmission Type", "ANT Device Number", "ANT Network",
+    "", "", "Source Type", "", "Product Name"),
     24 : (),
     25 : (),
     26 : ("", "", "", "", "Sport", "Capabilities", "Valid Steps", "Protection", "Name"),
-    27 : ("Step Name", "Duration Type", "Duration Value", "Target Type", "Target Value", "Custom Target Value Low", "Custom Target Value High", "Intensity"),
+    27 : ("Step Name", "Duration Type", "Duration Value", "Target Type", "Target Value", "Custom Target Value Low", "Custom Target Value High", "Intensity", "Notes",
+          "Equipment", "Exercise Category", "Exercise Name", "Exercise Weight", "Weight Display Unit"),
     28 : ("Manufacturer", "Product", "Serial Number", "Creation Time", "Completed", "Type", "Schedule Time"),
     29 : ("Name", "Latitude", "Longitude", "Symbol", "Altitude", "???", "Date"),
     30 : ("Weight", "Fat percent", "Hydration percent", "Visceral Fat Mass", "Bone Mass", "Muscle Mass", "Basal Met", "Physique Rating", "Active Met", "Metabolic Age", "Visceral Fat Rating"),
     31 : ("", "", "", "", "Sport", "Name", "Capabilities"),
-    32 : ("", "Time", "Latitude", "Longitude", "Distance", "Type", "Name"),
+    32 : ("", "Time", "Latitude", "Longitude", "Distance", "Type", "Name", "", "Favorite"),
     33 : ("Timer Time", "Distance", "Calories", "Sport", "", "???"),
     34 : ("Total Timer Time", "Number of Sessions", "Type", "Event", "Event Type", "Local Timestamp", "Event Group"),
     35 : ("", "", "", "Version", "", "Part No"),
@@ -82,11 +127,54 @@ _message_field_names = {
     38 : ("File", "Message Num", "Count Type", "Count"),
     39 : ("File", "Message Num", "Field Num", "Count"),
     49 : ("Software Version", "Hardware Version"),
-    53 : ("", "High Value", "Name"),
+    53 : ("High Value", "Name"),
+    55 : ("Device Index", "Calories", "Distance", "Cycles", "Active Time", "Activity Type", "Activity Subtype", "Activity Level", "Distance 16", "Cycles 16",
+          "Activity Time 16", "Local Time", "Temperature", "", "Temperature Min", "Temperature Max", "Activity Time", "", "", "Active Calories", "", "", "", "",
+          "Current Activity Type Intesity", "Timestamp Min 8", "Timestamp 16", "Heart Rate", "Intesity", "Duration Min", "Duration", "Ascent", "Descent",
+          "Moderate Activity Minutes", "Vigorous Activity Minutes"),
+    72 : ("Type", "Manufacturer", "Product", "Serial Number", "Time Created"),
     74 : ("", "", "???", "", "???", "???"),
+    78 : ("Time"),
     79 : ("???", "Age", "Height", "Weight", "???", "???", "???", "???"),
-    101 : ("Event", "Event Type", "Start Time", "Total Elapsed Time", "Total Timer Time", "Total Strokes", "Average Speed", "Swimming Stroke", "", "Average Swimming Cadence", "", "", "Length Type", ""),
-    104 : ("???", "???", "???", "???")
+    80 : ("Fractional Timestamp", "Message Id", "Message Data", "Channel Number", "Data"),
+    81 : ("Fractional Timestamp", "Message Id", "Message Data", "Channel Number", "Data"),
+    82 : ("Channel Number", "Device type", "Device Number", "Transmission Type", "Device Index"),
+    101 : ("Event", "Event Type", "Start Time", "Total Elapsed Time", "Total Timer Time", "Total Strokes", "Average Speed", "Swimming Stroke", "", "Average Swimming Cadence", "Event Group", "Total Calories", "Length Type", "", "", "", "", "", "Player Score", "Opponent Score", "Stroke Count", "Zone Count"),
+    104 : ("???", "???", "???", "???"),
+    105 : (),
+    106 : ("Manufacturer", "Product"),
+    127 : ("Blutooth Enabled", "Blutooth LE enabled", "ANT Enabled", "Name", "Live Tracking Enabled", "Weather Condition Enabled", "Weather Alerts Enabled",
+           "Auto Activity Upload Enabled", "Course Download Enabled", "Workout download Enabled", "GPS Ephemeris Download Enabled", "Incident Detection Enabled",
+           "Grouptrack Enabled"),
+    128 : ("Weather Report", "Temperature", "Condition", "Wind Direction", "Wind Speed", "Precipitation Probability", "Temperature Feels Like", "Relative Humidity",
+           "Location", "Observed at Time", "Observed Latitude", "Observed Longitude", "Day of Week", "High Temperature", "Low Temperature"),
+    129 : ("Report Id", "Issue Time", "Expire Time", "Severity", "type"),
+    131 : ("High Value", "Name"),
+    132 : ("Fractional Timestamp", "Time 256", "", "", "", "", "Filtered BPM", "", "", "Event TimeStamp", "Event Timestamp 12"),
+    142 : ("Event", "Event Type", "Start Time", "Start Position Latitude", "Start Position Longitude", "End Position Latitude", "End Position Longitude",
+           "Total Elapsed Time", "Total Timer Time", "Total Distance", "Total Cycles", "Total Calories", "Total Fat Calories", "Average Speed", "Max Speed",
+           "Average Heart Rate", "Max Heart Rate", "Average Cadence", "Max Cadence", "Average Power", "Max Power", "Total Ascent", "Total Descent",
+           "Sport", "Event Group", "NEC Latitude", "NEC Longitude", "SWC Latitude", "SWC Longitude", "Name", "Normalized Power", "Left-Right Balance",
+           "SubSport", "Total Work", "Average Altitude", "Max Altitude", "GPS Accuracy", "Average Grade", "Average Pos Grade", "Average Negative grade",
+           "Max Pos Grade", "Max Negative Grade", "Average temperature", "Max Temperature", "Total Moving Time", "Average Pos Vertical Speed",
+           "Average Negative Vertical Speed", "Max Pos Vertical Speed", "Max Negative Vertical Speed", "Time in HR Zone", "Time in Speed Zone",
+           "Time in Cadence Zone", "Time in Power Zone", "Repetition Number", "Min Altitude", "Min Heart Rate", "Active Time", "Workout Step Index",
+           "Sport Event", "Average Left Torque Efectiveness", "Average Right Torque Efectiveness", "Average Left Pedal Smoothness", "Average Right Pedal Smoothness",
+           "Average Combined Pedal Smoothness", "Status", "UUID", "Average Fractional Cadence", "Max Fractional Cadence", "Total Fractional Cycles",
+           "Front Gear Shift Count", "Rear Gear Shift Count", "Time Standing", "Stand Count", "Average Left Platform Center Offset", "Average Right Platform Center Offset",
+           "Average Left Power Phase", "Average Left Power Phase Peak", "Average Right Power Phase", "Average Right Power Phase Peak", "Average Power Position",
+           "Max Power Position", "Average Cadence position", "Max Cadence Position", "Manufacturer"),
+    149 : ("Name", "Type", "Group Primary Key", "Activity Id", "Segment Time", "Activity Id String"),
+    150 : ("Latitude", "Longitude", "Distance", "Altitude", "Leader Time"),
+    158 : ("Sport", "SubSport", "Number of Valid Steps", "First Step Index", "Pool Length", "Pool Length Unit"),
+    159 : ("Mode", "Layout"),
+    160 : ("Timestamp, ms", "Latitude", "Longitude", "Enhanced Altitude", "Enhanced Speed", "Heading", "UTC Timestamp", "Velocity"),
+    161 : ("Timestamp, ms", "Camera Event Type", "Camera File UUID", "Camera Orientation"),
+    162 : ("Fractional Timestamp", "System Timestamp", "Fractional System Timestamp", "Local Timestamp", "Timestamp, ms", "System Timestamp, ms"),
+    164 : ("Timestamp, ms", "Sample Time Offset", "Gyro X", "Gyro Y", "Gyro Z", "Calibrated Gyro X", "Calibrated Gyro Y", "Calibrated Gyro Z"),
+    165 : ("Timestamp, ms", "Sample Time Offset", "Accel X", "Accel Y", "Accel Z", "Calibrated Accel X", "Calibrated Accel Y", "Calibrated Accel Z",
+           "Compressed Calibrated Accel X", "Compressed Calibrated Accel Y", "Compressed Calibrated Accel Z"),
+    167 : ("Sensor Type", "Calibration Factor", "Calibration Divizor", "Level Shift", "Offset Cal", "Orientation Matrix")
 }
 
 _enum_file_type = { 1 : "Device", 2 : "Setting", 3 : "Sport", 4 : "Activity", 5 : "Workout", 6 : "Course", 7 : "Schedule", 8 : "Waypoints", 9 : "Monitoring", 10 : "Totals", 11 : "Goals", 32 : "Memory" }
@@ -218,8 +306,8 @@ def fit_value_to_string(fit, offset, field_size, base_type_num, global_num, defi
     return rv
 
 def fit_to_gpx(fit):
-    gpx = array.array('B', "<?xml version=\"1.0\"?>\n<gpx version=\"1.1\" creator=\"antf_cli\" xsi:schemaLocation=\"http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd http://www.garmin.com/xmlschemas/GpxExtensions/v3 http://www.garmin.com/xmlschemas/GpxExtensionsv3.xsd http://www.garmin.com/xmlschemas/TrackPointExtension/v1 http://www.garmin.com/xmlschemas/TrackPointExtensionv1.xsd\"\nxmlns=\"http://www.topografix.com/GPX/1/1\"\nxmlns:gpxtpx=\"http://www.garmin.com/xmlschemas/TrackPointExtension/v1\"\nxmlns:gpxx=\"http://www.garmin.com/xmlschemas/GpxExtensions/v3\"\nxmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\">\n")
-    
+    gpx = array.array('B', b"<?xml version=\"1.0\"?>\n<gpx version=\"1.1\" creator=\"antf_cli\" xsi:schemaLocation=\"http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd http://www.garmin.com/xmlschemas/GpxExtensions/v3 http://www.garmin.com/xmlschemas/GpxExtensionsv3.xsd http://www.garmin.com/xmlschemas/TrackPointExtension/v1 http://www.garmin.com/xmlschemas/TrackPointExtensionv1.xsd\"\nxmlns=\"http://www.topografix.com/GPX/1/1\"\nxmlns:gpxtpx=\"http://www.garmin.com/xmlschemas/TrackPointExtension/v1\"\nxmlns:gpxx=\"http://www.garmin.com/xmlschemas/GpxExtensions/v3\"\nxmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\">\n")
+
     class FITHeader(LittleEndianStructure):
         _fields_ = [
             ("headerSize", c_uint8),
@@ -229,13 +317,13 @@ def fit_to_gpx(fit):
             ("signature", c_char * 4)
         ]
         _pack_ = 1
-    
+
     class FITFooter(LittleEndianStructure):
         _fields_ = [
             ("crc", c_uint16),
         ]
         _pack_ = 1
-        
+
     class RecordNormalHeader(LittleEndianStructure):
         _fields_ = [
             ("localMessageType", c_uint8, 4),
@@ -269,34 +357,34 @@ def fit_to_gpx(fit):
             ("baseType", c_uint8)
         ]
         _pack_ = 1
-    
+
     header_size = sizeof(FITHeader)
     footer_size = sizeof(FITFooter)
     record_header_size = sizeof(RecordNormalHeader)
     record_fixed_size = sizeof(RecordFixed)
     record_field_size = sizeof(RecordField)
-    
+
     header_ptr = (c_uint8 * header_size)(*fit[0:header_size])
     header = cast(header_ptr, POINTER(FITHeader))[0]
     offset = header.headerSize
-    
-    if header.signature == ".FIT":
-        fit_size = header.headerSize + header.dataSize 
+
+    if header.signature == b".FIT":
+        fit_size = header.headerSize + header.dataSize
         fit_crc = crc(fit[0:fit_size])
-        
+
         footer_ptr = (c_uint8 * footer_size)(*fit[fit_size:fit_size+footer_size])
         footer = cast(footer_ptr, POINTER(FITFooter))[0]
-        
+
         if fit_crc == footer.crc:
             _logger.debug("FIT Protocol=%d, Profile=%d, Data Size=%d bytes", header.protocolVersion, header.profileVersion, header.dataSize)
-            
+
             tracks = {}
             waypoints = []
             record_definitions = {}
             file_type = 0xFF
             file_creation_time = 0
             track_name = ""
-            
+
             while offset < fit_size:
                 record_header_ptr = (c_uint8 * record_header_size)(*fit[offset:offset+record_header_size])
                 record_header = cast(record_header_ptr, POINTER(RecordNormalHeader))[0]
@@ -309,7 +397,7 @@ def fit_to_gpx(fit):
                         global_num = record_fixed.globalNum
 
                         _logger.debug("Local Message: %s (%d), %d fields:", _message_type_names[global_num], global_num, record_fixed.fieldsNum)
-                        
+
                         for field_num in range(record_fixed.fieldsNum):
                             base_type_num = record_fields[field_num].baseType & int('11111', 2)
                             definition_num = record_fields[field_num].definitionNum
@@ -317,7 +405,7 @@ def fit_to_gpx(fit):
 
                             _logger.debug("\t%d.%d: %s (%s) = %s", global_num, definition_num, get_field_name(global_num, definition_num), _data_type_names[base_type_num],
                                           fit_value_to_string(fit, offset, field_size, base_type_num, global_num, definition_num))
-                            
+
                             if global_num == 0: # File Id
                                 if definition_num == 0: # Type
                                     file_type = struct.unpack('<B', fit[offset:offset+1])[0]
@@ -368,18 +456,18 @@ def fit_to_gpx(fit):
                         record_fixed_ptr = (c_uint8 * record_fixed_size)(*fit[offset:offset+record_fixed_size])
                         record_fixed = cast(record_fixed_ptr, POINTER(RecordFixed))[0]
                         offset += record_fixed_size
-                        
+
                         record_fields = []
                         for field_num in range(record_fixed.fieldsNum):
                             record_field_ptr = (c_uint8 * record_field_size)(*fit[offset:offset+record_field_size])
                             record_field = cast(record_field_ptr, POINTER(RecordField))[0]
                             offset += record_field_size
                             record_fields.append(record_field)
-                            
+
                         record_definitions[record_header.localMessageType] = (record_fixed, record_fields)
                 else:
                     _logger.debug("<Compressed Timestamp Header>")
-        
+
             for waypoint in waypoints:
                 name = waypoint.get("name", norm_time(file_creation_time))
                 time = waypoint.get("time", file_creation_time)
@@ -387,37 +475,37 @@ def fit_to_gpx(fit):
                 longitude = waypoint.get("longitude", 0x7FFFFFFF)
                 altitude = waypoint.get("altitude", 0xFFFF)
                 symbol = waypoint.get("symbol", 0xFFFF)
-                
+
                 if latitude != 0x7FFFFFFF and longitude != 0x7FFFFFFF:
-                    gpx += array.array('B', "  <wpt lat=\"")
+                    gpx += array.array('B', b"  <wpt lat=\"")
                     gpx += array.array('B', str(norm_coord(latitude)))
-                    gpx += array.array('B', "\" lon=\"")
+                    gpx += array.array('B', b"\" lon=\"")
                     gpx += array.array('B', str(norm_coord(longitude)))
-                    gpx += array.array('B', "\">\n")
-                    gpx += array.array('B', "    <name>")
+                    gpx += array.array('B', b"\">\n")
+                    gpx += array.array('B', b"    <name>")
                     gpx += array.array('B', name)
-                    gpx += array.array('B', "</name>\n")
+                    gpx += array.array('B', b"</name>\n")
                     if altitude != 0xFFFF:
-                        gpx += array.array('B', "    <ele>")
+                        gpx += array.array('B', b"    <ele>")
                         gpx += array.array('B', str(norm_alt(altitude)))
-                        gpx += array.array('B', "</ele>\n")
-                    gpx += array.array('B', "    <time>")
+                        gpx += array.array('B', b"</ele>\n")
+                    gpx += array.array('B', b"    <time>")
                     gpx += array.array('B', norm_time(time))
-                    gpx += array.array('B', "</time>\n")
+                    gpx += array.array('B', b"</time>\n")
                     if symbol != 0xFFFF:
-                        gpx += array.array('B', "    <sym>")
+                        gpx += array.array('B', b"    <sym>")
                         gpx += array.array('B', _symbols.get(symbol, "Flag, Red"))
-                        gpx += array.array('B', "</sym>\n")
-                    gpx += array.array('B', "  </wpt>\n")
-            
+                        gpx += array.array('B', b"</sym>\n")
+                    gpx += array.array('B', b"  </wpt>\n")
+
             for name in tracks:
-                gpx += array.array('B', "<trk>\n")
-                gpx += array.array('B', "  <name>")
-                gpx += array.array('B', name)
-                gpx += array.array('B', "</name>\n")
-                
+                gpx += array.array('B', b"<trk>\n")
+                gpx += array.array('B', b"  <name>")
+                gpx += array.array('B', name.encode())
+                gpx += array.array('B', b"</name>\n")
+
                 for segment in tracks[name]:
-                    gpx += array.array('B', "  <trkseg>\n")
+                    gpx += array.array('B', b"  <trkseg>\n")
                     for point in segment:
                         time = point.get("time", file_creation_time)
                         latitude = point.get("latitude", 0x7FFFFFFF)
@@ -426,33 +514,33 @@ def fit_to_gpx(fit):
                         heart_rate = point.get("heart_rate", 0xFF)
                         cadence = point.get("cadence", 0xFF)
                         if latitude != 0x7FFFFFFF and longitude != 0x7FFFFFFF:
-                            gpx += array.array('B', "    <trkpt lat=\"")
-                            gpx += array.array('B', str(norm_coord(latitude)))
-                            gpx += array.array('B', "\" lon=\"")
-                            gpx += array.array('B', str(norm_coord(longitude)))
-                            gpx += array.array('B', "\">\n")
+                            gpx += array.array('B', b"    <trkpt lat=\"")
+                            gpx += array.array('B', str(norm_coord(latitude)).encode())
+                            gpx += array.array('B', b"\" lon=\"")
+                            gpx += array.array('B', str(norm_coord(longitude)).encode())
+                            gpx += array.array('B', b"\">\n")
                             if altitude != 0xFFFF:
-                                gpx += array.array('B', "      <ele>")
-                                gpx += array.array('B', str(norm_alt(altitude)))
-                                gpx += array.array('B', "</ele>\n")
-                            gpx += array.array('B', "      <time>")
-                            gpx += array.array('B', norm_time(time))
-                            gpx += array.array('B', "</time>\n")
+                                gpx += array.array('B', b"      <ele>")
+                                gpx += array.array('B', str(norm_alt(altitude)).encode())
+                                gpx += array.array('B', b"</ele>\n")
+                            gpx += array.array('B', b"      <time>")
+                            gpx += array.array('B', norm_time(time).encode())
+                            gpx += array.array('B', b"</time>\n")
                             if heart_rate != 0xFF or cadence != 0xFF:
-                                gpx += array.array('B', "      <extensions>\n")
-                                gpx += array.array('B', "        <gpxtpx:TrackPointExtension>\n")
+                                gpx += array.array('B', b"      <extensions>\n")
+                                gpx += array.array('B', b"        <gpxtpx:TrackPointExtension>\n")
                                 if heart_rate != 0xFF:
-                                    gpx += array.array('B', "          <gpxtpx:hr>")
-                                    gpx += array.array('B', str(heart_rate))
-                                    gpx += array.array('B', "</gpxtpx:hr>\n")
+                                    gpx += array.array('B', b"          <gpxtpx:hr>")
+                                    gpx += array.array('B', str(heart_rate).encode())
+                                    gpx += array.array('B', b"</gpxtpx:hr>\n")
                                 if cadence  != 0xFF:
-                                    gpx += array.array('B', "          <gpxtpx:cad>")
-                                    gpx += array.array('B', str(cadence))
-                                    gpx += array.array('B', "</gpxtpx:cad>\n")
-                                gpx += array.array('B', "        </gpxtpx:TrackPointExtension>\n")
-                                gpx += array.array('B', "      </extensions>\n")
-                            gpx += array.array('B', "    </trkpt>\n")
-                    gpx += array.array('B', "  </trkseg>\n")
-                gpx += array.array('B', "</trk>\n")
-    gpx += array.array('B', "</gpx>\n")
+                                    gpx += array.array('B', b"          <gpxtpx:cad>")
+                                    gpx += array.array('B', str(cadence).encode())
+                                    gpx += array.array('B', b"</gpxtpx:cad>\n")
+                                gpx += array.array('B', b"        </gpxtpx:TrackPointExtension>\n")
+                                gpx += array.array('B', b"      </extensions>\n")
+                            gpx += array.array('B', b"    </trkpt>\n")
+                    gpx += array.array('B', b"  </trkseg>\n")
+                gpx += array.array('B', b"</trk>\n")
+    gpx += array.array('B', b"</gpx>\n")
     return gpx
