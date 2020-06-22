@@ -478,23 +478,23 @@ def fit_to_gpx(fit):
 
                 if latitude != 0x7FFFFFFF and longitude != 0x7FFFFFFF:
                     gpx += array.array('B', b"  <wpt lat=\"")
-                    gpx += array.array('B', str(norm_coord(latitude)))
+                    gpx += array.array('B', str(norm_coord(latitude)).encode())
                     gpx += array.array('B', b"\" lon=\"")
-                    gpx += array.array('B', str(norm_coord(longitude)))
+                    gpx += array.array('B', str(norm_coord(longitude)).encode())
                     gpx += array.array('B', b"\">\n")
                     gpx += array.array('B', b"    <name>")
-                    gpx += array.array('B', name)
+                    gpx += array.array('B', name.encode())
                     gpx += array.array('B', b"</name>\n")
                     if altitude != 0xFFFF:
                         gpx += array.array('B', b"    <ele>")
-                        gpx += array.array('B', str(norm_alt(altitude)))
+                        gpx += array.array('B', str(norm_alt(altitude)).encode())
                         gpx += array.array('B', b"</ele>\n")
                     gpx += array.array('B', b"    <time>")
-                    gpx += array.array('B', norm_time(time))
+                    gpx += array.array('B', norm_time(time).encode())
                     gpx += array.array('B', b"</time>\n")
                     if symbol != 0xFFFF:
                         gpx += array.array('B', b"    <sym>")
-                        gpx += array.array('B', _symbols.get(symbol, "Flag, Red"))
+                        gpx += array.array('B', _symbols.get(symbol, "Flag, Red").encode())
                         gpx += array.array('B', b"</sym>\n")
                     gpx += array.array('B', b"  </wpt>\n")
 
