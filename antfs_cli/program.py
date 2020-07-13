@@ -142,6 +142,8 @@ class AntFSCLI(Application):
         self._uploading = args.upload
         self._pair = args.pair
         self._skip_archived = args.skip_archived
+        self._newest_first = args.newest_first
+        self._download_n = args.download_n
 
     def setup_channel(self, channel):
         channel.set_period(4096)
@@ -236,6 +238,12 @@ class AntFSCLI(Application):
                            for fil in downloading
                            if not fil.is_archived()]
 
+        if self._newest_first:
+            downloading = downloading[::-1]
+
+        if self._download_n:
+            downloading = downloading[:self._download_n]
+
         print("Downloading", len(downloading), "file(s)")
         if self._uploading:
             print(" and uploading", len(uploading), "file(s)")
@@ -322,6 +330,8 @@ def main():
     parser.add_argument("--upload", action="store_true", help="enable uploading")
     parser.add_argument("--debug", action="store_true", help="enable debug")
     parser.add_argument("--pair", action="store_true", help="force pairing even if already paired")
+    parser.add_argument("-r", "--newest-first", action="store_true", help="download most recent activities")
+    parser.add_argument("-n", "--download-n", action="store", help="download first n files", type=int, default=None)
     parser.add_argument("-a", "--skip-archived", action="store_true", help="don't download files marked as 'archived' on the watch")
     args = parser.parse_args()
 
