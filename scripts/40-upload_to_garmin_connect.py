@@ -19,8 +19,6 @@
 #
 # chmod +x /path/to/40-upload_to_garmin_connect.py
 
-from __future__ import absolute_import, print_function
-
 import sys
 import os.path
 import logging

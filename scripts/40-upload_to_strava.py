@@ -22,7 +22,6 @@
 # Don't forget to make this script executable :
 #
 # chmod +x /path/to/40-upload_to_strava.py
-from __future__ import print_function, with_statement
 
 import pickle
 import sys
@@ -30,12 +29,9 @@ import time
 import os.path
 import xdg.BaseDirectory
 
-try:
-    from urllib.parse import urlparse, parse_qs
-    from http.server import HTTPServer, BaseHTTPRequestHandler
-except ImportError:  # Python 2.7
-    from urlparse import urlparse, parse_qs
-    from BaseHTTPServer import HTTPServer, BaseHTTPRequestHandler
+from urllib.parse import urlparse, parse_qs
+from http.server import HTTPServer, BaseHTTPRequestHandler
+
 
 from stravalib import Client
 from stravalib.exc import ActivityUploadFailed
