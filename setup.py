@@ -27,42 +27,37 @@ from __future__ import absolute_import, print_function
 from setuptools import setup
 
 try:
-    with open('README.md') as file:
+    with open("README.md") as file:
         long_description = file.read()
 except IOError:
-    long_description = ''
+    long_description = ""
 
-setup(name='antfs-cli',
-      version='0.4',
-
-      description='ANT-FS Command Line Interface',
-      long_description=long_description,
-
-      author='Gustav Tiger',
-      author_email='gustav@tiger.name',
-
-      packages=['antfs_cli'],
-      entry_points={
-          'console_scripts': ['antfs-cli=antfs_cli.program:main']
-      },
-
-      url='https://github.com/Tigge/antfs-cli',
-
-      classifiers=['Development Status :: 5 - Production/Stable',
-                   'Intended Audience :: Developers',
-                   'Intended Audience :: End Users/Desktop',
-                   'Intended Audience :: Healthcare Industry',
-                   "Intended Audience :: Science/Research",
-                   'License :: OSI Approved :: MIT License',
-                   'Programming Language :: Python :: 3.6',
-                   'Programming Language :: Python :: 3.7',
-                   'Programming Language :: Python :: 3.8',
-                   'Programming Language :: Python :: 3.9'],
-
-      dependency_links=['git+https://github.com/Tigge/openant.git#egg=openant-0.4'],
-      install_requires=['openant>=0.4'],
-      extras_require={
-          'upload': ['garmin-uploader'],
-      },
-
-      test_suite='tests')
+setup(
+    name="antfs-cli",
+    version="0.4",
+    description="ANT-FS Command Line Interface",
+    long_description=long_description,
+    author="Gustav Tiger",
+    author_email="gustav@tiger.name",
+    packages=["antfs_cli"],
+    entry_points={"console_scripts": ["antfs-cli=antfs_cli.program:main"]},
+    url="https://github.com/Tigge/antfs-cli",
+    classifiers=[
+        "Development Status :: 5 - Production/Stable",
+        "Intended Audience :: Developers",
+        "Intended Audience :: End Users/Desktop",
+        "Intended Audience :: Healthcare Industry",
+        "Intended Audience :: Science/Research",
+        "License :: OSI Approved :: MIT License",
+        "Programming Language :: Python :: 3.6",
+        "Programming Language :: Python :: 3.7",
+        "Programming Language :: Python :: 3.8",
+        "Programming Language :: Python :: 3.9",
+    ],
+    dependency_links=["git+https://github.com/Tigge/openant.git#egg=openant-0.4"],
+    install_requires=["openant>=0.4"],
+    extras_require={
+        "upload": ["garmin-uploader"],
+    },
+    test_suite="tests",
+)

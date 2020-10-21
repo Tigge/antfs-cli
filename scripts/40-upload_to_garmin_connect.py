@@ -30,11 +30,14 @@ try:
     from garmin_uploader.user import User
     from garmin_uploader.workflow import Activity
 except ImportError:
-    print('Python package garmin_uploader is not available. Please install with pip install garmin-uploader')
+    print(
+        "Python package garmin_uploader is not available. Please install with pip install garmin-uploader"
+    )
     sys.exit(1)
 
 # Setup garmin uploader logger
 logger.setLevel(logging.INFO)
+
 
 def main(action, filename):
     assert os.path.exists(filename)
@@ -45,16 +48,17 @@ def main(action, filename):
     # Auth with ~/.guploadrc credentials
     user = User()
     if not user.authenticate():
-        logger.error('Invalid Garmin Connect credentials')
+        logger.error("Invalid Garmin Connect credentials")
         return -1
 
     # Upload the activity
     activity = Activity(filename)
     if not activity.upload(user):
-        logger.error('Failed to send activity to Garmin')
+        logger.error("Failed to send activity to Garmin")
         return -1
 
     return 0
+
 
 if __name__ == "__main__":
     sys.exit(main(sys.argv[1], sys.argv[2]))

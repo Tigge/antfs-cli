@@ -3,6 +3,7 @@ ANT-FS Command Line Interface
 
 [![Build Status](https://github.com/Tigge/antfs-cli/workflows/Build/badge.svg?branch=master)](https://github.com/Tigge/antfs-cli/actions)
 [![Coveralls branch](https://img.shields.io/coveralls/Tigge/antfs-cli/master.svg)](https://coveralls.io/r/Tigge/antfs-cli?branch=master)
+[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 
 This program (`antfs-cli`) extracts all activity FIT files from a device and
 writes them to a folder (see file locations below). The first time it runs it

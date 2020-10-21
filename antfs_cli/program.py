@@ -33,7 +33,12 @@ import os
 import sys
 import traceback
 
-from ant.fs.manager import Application, AntFSAuthenticationException, AntFSTimeException, AntFSDownloadException
+from ant.fs.manager import (
+    Application,
+    AntFSAuthenticationException,
+    AntFSTimeException,
+    AntFSDownloadException,
+)
 from ant.fs.manager import AntFSUploadException
 from ant.fs.file import File
 
@@ -56,7 +61,8 @@ _directories = {
     "sports": File.Identifier.SPORT,
     "totals": File.Identifier.TOTALS,
     "weight": File.Identifier.WEIGHT,
-    "workouts": File.Identifier.WORKOUT}
+    "workouts": File.Identifier.WORKOUT,
+}
 
 _filetypes = dict((v, k) for (k, v) in _directories.items())
 
@@ -76,9 +82,13 @@ class Device:
         # Check profile version, if not a new device
         if os.path.isdir(self._path):
             if self.get_profile_version() < self._PROFILE_VERSION:
-                raise Device.ProfileVersionException("Profile version mismatch, too old")
+                raise Device.ProfileVersionException(
+                    "Profile version mismatch, too old"
+                )
             elif self.get_profile_version() > self._PROFILE_VERSION:
-                raise Device.ProfileVersionException("Profile version mismatch, too new")
+                raise Device.ProfileVersionException(
+                    "Profile version mismatch, too new"
+                )
 
         # Create directories
         utilities.makedirs_if_not_exists(self._path)
@@ -89,7 +99,7 @@ class Device:
         # Write profile version (If none)
         path = os.path.join(self._path, self._PROFILE_VERSION_FILE)
         if not os.path.exists(path):
-            with open(path, 'w') as f:
+            with open(path, "w") as f:
                 f.write(str(self._PROFILE_VERSION))
 
     def get_path(self):
@@ -104,7 +114,7 @@ class Device:
     def get_profile_version(self):
         path = os.path.join(self._path, self._PROFILE_VERSION_FILE)
         try:
-            with open(path, 'rb') as f:
+            with open(path, "rb") as f:
                 return int(f.read())
         except IOError as e:
             # TODO
@@ -112,15 +122,15 @@ class Device:
 
     def read_passkey(self):
         try:
-            with open(os.path.join(self._path, "authfile"), 'rb') as f:
-                d = array.array('B', f.read())
+            with open(os.path.join(self._path, "authfile"), "rb") as f:
+                d = array.array("B", f.read())
                 _logger.debug("loaded authfile: %r", d)
                 return d
         except:
             return None
 
     def write_passkey(self, passkey):
-        with open(os.path.join(self._path, "authfile"), 'wb') as f:
+        with open(os.path.join(self._path, "authfile"), "wb") as f:
             passkey.tofile(f)
             _logger.debug("wrote authfile: %r, %r", self._serial, passkey)
 
@@ -155,8 +165,7 @@ class AntFSCLI(Application):
         print("Searching...")
 
     def on_link(self, beacon):
-        _logger.debug("on link, %r, %r", beacon.get_serial(),
-                      beacon.get_descriptor())
+        _logger.debug("on link, %r, %r", beacon.get_serial(), beacon.get_descriptor())
         self.link()
         return True
 
@@ -202,7 +211,7 @@ class AntFSCLI(Application):
             _logger.exception("Could not set time")
         else:
             print("OK")
-     
+
         directory = self.download_directory()
         # directory.print_list()
 
@@ -223,18 +232,20 @@ class AntFSCLI(Application):
         # Calculate remote and local file diff
         local_names = set(name for (name, filetype) in local_files)
         remote_names = set(name for (name, fil) in remote_files)
-        downloading = [fil
-                       for name, fil in remote_files
-                       if name not in local_names or not fil.is_archived()]
-        uploading = [(name, filetype)
-                     for name, filetype in local_files
-                     if name not in remote_names]
+        downloading = [
+            fil
+            for name, fil in remote_files
+            if name not in local_names or not fil.is_archived()
+        ]
+        uploading = [
+            (name, filetype)
+            for name, filetype in local_files
+            if name not in remote_names
+        ]
 
         # Remove archived files from the list
         if self._skip_archived:
-            downloading = [fil
-                           for fil in downloading
-                           if not fil.is_archived()]
+            downloading = [fil for fil in downloading if not fil.is_archived()]
 
         print("Downloading", len(downloading), "file(s)")
         if self._uploading:
@@ -256,9 +267,12 @@ class AntFSCLI(Application):
             directory = self.download_directory()
             for index, (filename, typ) in results.items():
                 try:
-                    file_object = next(f for f in directory.get_files()
-                                       if f.get_index() == index)
-                    src = os.path.join(self._device.get_path(), _filetypes[typ], filename)
+                    file_object = next(
+                        f for f in directory.get_files() if f.get_index() == index
+                    )
+                    src = os.path.join(
+                        self._device.get_path(), _filetypes[typ], filename
+                    )
                     dst = self.get_filepath(file_object)
                     print(" - Renamed", src, "to", dst)
                     os.rename(src, dst)
@@ -269,12 +283,15 @@ class AntFSCLI(Application):
         return "{0}_{1}_{2}.fit".format(
             fil.get_date().strftime("%Y-%m-%d_%H-%M-%S"),
             fil.get_fit_sub_type(),
-            fil.get_fit_file_number())
+            fil.get_fit_file_number(),
+        )
 
     def get_filepath(self, fil):
-        return os.path.join(self._device.get_path(),
-                            _filetypes[fil.get_fit_sub_type()],
-                            self.get_filename(fil))
+        return os.path.join(
+            self._device.get_path(),
+            _filetypes[fil.get_fit_sub_type()],
+            self.get_filename(fil),
+        )
 
     def download_file(self, fil):
         sys.stdout.write("Downloading {0}: ".format(self.get_filename(fil)))
@@ -290,9 +307,10 @@ class AntFSCLI(Application):
     def upload_file(self, typ, filename):
         sys.stdout.write("Uploading {0}: ".format(filename))
         sys.stdout.flush()
-        with open(os.path.join(self._device.get_path(), _filetypes[typ],
-                               filename), 'rb') as fd:
-            data = array.array('B', fd.read())
+        with open(
+            os.path.join(self._device.get_path(), _filetypes[typ], filename), "rb"
+        ) as fd:
+            data = array.array("B", fd.read())
         index = self.create(typ, data, AntFSCLI._get_progress_callback())
         sys.stdout.write("\n")
         sys.stdout.flush()
@@ -318,11 +336,20 @@ class AntFSCLI(Application):
 
 
 def main():
-    parser = ArgumentParser(description="Extracts FIT files from ANT-FS based sport watches.")
+    parser = ArgumentParser(
+        description="Extracts FIT files from ANT-FS based sport watches."
+    )
     parser.add_argument("--upload", action="store_true", help="enable uploading")
     parser.add_argument("--debug", action="store_true", help="enable debug")
-    parser.add_argument("--pair", action="store_true", help="force pairing even if already paired")
-    parser.add_argument("-a", "--skip-archived", action="store_true", help="don't download files marked as 'archived' on the watch")
+    parser.add_argument(
+        "--pair", action="store_true", help="force pairing even if already paired"
+    )
+    parser.add_argument(
+        "-a",
+        "--skip-archived",
+        action="store_true",
+        help="don't download files marked as 'archived' on the watch",
+    )
     args = parser.parse_args()
 
     # Set up config dir
@@ -339,11 +366,13 @@ def main():
     # The longest module/logger name now is "ant.easy.channel".
     formatter = logging.Formatter(
         fmt="%(threadName)-10s %(asctime)s  %(name)-16s"
-            "  %(levelname)-8s  %(message)s (%(filename)s:%(lineno)d)")
+        "  %(levelname)-8s  %(message)s (%(filename)s:%(lineno)d)"
+    )
 
-    log_filename = os.path.join(logs_dir, "{0}-{1}.log".format(
-        time.strftime("%Y%m%d-%H%M%S"),
-        AntFSCLI.PRODUCT_NAME))
+    log_filename = os.path.join(
+        logs_dir,
+        "{0}-{1}.log".format(time.strftime("%Y%m%d-%H%M%S"), AntFSCLI.PRODUCT_NAME),
+    )
     handler = logging.FileHandler(log_filename, "w")
     handler.setFormatter(formatter)
     _logger.addHandler(handler)
@@ -358,12 +387,14 @@ def main():
         finally:
             g.stop()
     except Device.ProfileVersionException as e:
-        print("\nError: %s\n\nThis means that %s found that your data directory "
-              "structure was too old or too new. The best option is "
-              "probably to let %s recreate your "
-              "folder by deleting your data folder, after backing it up, "
-              "and let all your files be redownloaded from your sports "
-              "watch." % (e, AntFSCLI.PRODUCT_NAME, AntFSCLI.PRODUCT_NAME))
+        print(
+            "\nError: %s\n\nThis means that %s found that your data directory "
+            "structure was too old or too new. The best option is "
+            "probably to let %s recreate your "
+            "folder by deleting your data folder, after backing it up, "
+            "and let all your files be redownloaded from your sports "
+            "watch." % (e, AntFSCLI.PRODUCT_NAME, AntFSCLI.PRODUCT_NAME)
+        )
     except (Exception, KeyboardInterrupt) as e:
         traceback.print_exc()
         for line in traceback.format_exc().splitlines():
@@ -374,4 +405,3 @@ def main():
 
 if __name__ == "__main__":
     sys.exit(main())
-

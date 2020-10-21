@@ -52,12 +52,17 @@ def main(action, filename, fit_type):
 
     try:
         # Run FIT-to-TCX
-        process = subprocess.Popen(["fittotcx", filename], stdout=subprocess.PIPE,
-                                   stderr=subprocess.PIPE)
+        process = subprocess.Popen(
+            ["fittotcx", filename], stdout=subprocess.PIPE, stderr=subprocess.PIPE
+        )
         (data, _) = process.communicate()
     except OSError as e:
-        print("Could not run Convert to TCX - fittotcx",
-              "-", errno.errorcode[e.errno], os.strerror(e.errno))
+        print(
+            "Could not run Convert to TCX - fittotcx",
+            "-",
+            errno.errorcode[e.errno],
+            os.strerror(e.errno),
+        )
         return -1
 
     if process.returncode != 0:
@@ -65,11 +70,11 @@ def main(action, filename, fit_type):
         return -1
 
     # Write result
-    f = open(os.path.join(targetdir, targetfile), 'w')
+    f = open(os.path.join(targetdir, targetfile), "w")
     f.write(data)
     f.close()
     return 0
 
+
 if __name__ == "__main__":
     sys.exit(main(*sys.argv[1:]))
-

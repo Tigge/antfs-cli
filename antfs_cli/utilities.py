@@ -60,4 +60,3 @@ class XDG:
             return os.path.join(os.environ["HOME"], ".config", self._application)
         else:
             raise XDGError("Neither XDG_CONFIG_HOME nor HOME found in the environment")
-

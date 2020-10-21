@@ -45,11 +45,22 @@ class Runner:
     def _run_action(self, action, filename, fit_type):
         for script in self.get_scripts():
             try:
-                subprocess.call([os.path.join(self.directory, script),
-                                 action, filename, str(fit_type)])
+                subprocess.call(
+                    [
+                        os.path.join(self.directory, script),
+                        action,
+                        filename,
+                        str(fit_type),
+                    ]
+                )
             except OSError as e:
-                print(" - Could not run", script, "-", \
-                      errno.errorcode[e.errno], os.strerror(e.errno))
+                print(
+                    " - Could not run",
+                    script,
+                    "-",
+                    errno.errorcode[e.errno],
+                    os.strerror(e.errno),
+                )
 
     def run_action(self, action, filename, fit_type):
         t = threading.Thread(target=self._run_action, args=(action, filename, fit_type))
@@ -63,4 +74,3 @@ class Runner:
 
     def run_delete(self, filename, fit_type):
         self.run_action("DELETE", filename, fit_type)
-

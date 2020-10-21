@@ -44,9 +44,11 @@ from stravalib.exc import ActivityUploadFailed
 # https://github.com/mscansian/drpexe-uploader
 # do not change unless you want to create your own strava app
 CLIENT_ID = 39902
-CLIENT_SECRET = '44dfaeb5510f81137ff73286be6c1e876759907f'
+CLIENT_SECRET = "44dfaeb5510f81137ff73286be6c1e876759907f"
 
-STRAVA_CREDENTIALS_FILE = os.path.join(xdg.BaseDirectory.save_data_path('antfs-cli'), 'strava-credentials')
+STRAVA_CREDENTIALS_FILE = os.path.join(
+    xdg.BaseDirectory.save_data_path("antfs-cli"), "strava-credentials"
+)
 STRAVA_UPLOAD_PRIVATE = False
 
 
@@ -55,58 +57,62 @@ def main(action, filename):
         return 0
 
     try:
-        with open(STRAVA_CREDENTIALS_FILE, 'rb') as f:
+        with open(STRAVA_CREDENTIALS_FILE, "rb") as f:
             token_data = pickle.load(f)
-            access_token = token_data['access_token']
+            access_token = token_data["access_token"]
 
-            if token_data['expires_at'] <= time.time():
+            if token_data["expires_at"] <= time.time():
                 client = Client()
-                token_data = client.refresh_access_token(client_id=CLIENT_ID,
-                                                         client_secret=CLIENT_SECRET,
-                                                         refresh_token=token_data['refresh_token'])
-                access_token = token_data['access_token']
+                token_data = client.refresh_access_token(
+                    client_id=CLIENT_ID,
+                    client_secret=CLIENT_SECRET,
+                    refresh_token=token_data["refresh_token"],
+                )
+                access_token = token_data["access_token"]
 
-                with open(STRAVA_CREDENTIALS_FILE, 'wb') as fw:
+                with open(STRAVA_CREDENTIALS_FILE, "wb") as fw:
                     pickle.dump(token_data, fw, 0)
     except (FileNotFoundError, KeyError):
-        print('No Strava credentials provided.')
-        print('You first need to run the script to fetch the credentials')
-        print('./40-upload_to_strava.py')
+        print("No Strava credentials provided.")
+        print("You first need to run the script to fetch the credentials")
+        print("./40-upload_to_strava.py")
         return -1
 
     try:
         client = Client(access_token=access_token)
-        print('Uploading {}: '.format(os.path.basename(filename)), end='')
-        with open(filename, 'rb') as f:
+        print("Uploading {}: ".format(os.path.basename(filename)), end="")
+        with open(filename, "rb") as f:
             upload = client.upload_activity(
                 activity_file=f,
-                data_type='fit',
+                data_type="fit",
                 private=STRAVA_UPLOAD_PRIVATE,
             )
     except (ActivityUploadFailed, FileNotFoundError) as err:
-        print('FAILED')
-        print('Reason:', err)
+        print("FAILED")
+        print("Reason:", err)
         return -1
 
-    print('SUCCESS')
+    print("SUCCESS")
     return 0
 
 
 def start_strava_auth_flow():
-    print('---------------------------------------------')
-    print('| Starting Strava OAuth authentication flow |')
-    print('---------------------------------------------\n')
+    print("---------------------------------------------")
+    print("| Starting Strava OAuth authentication flow |")
+    print("---------------------------------------------\n")
 
-    httpd = HTTPServer(('127.0.0.1', 0), AuthRequestHandler)
+    httpd = HTTPServer(("127.0.0.1", 0), AuthRequestHandler)
 
     client = Client()
     url = client.authorization_url(
         client_id=CLIENT_ID,
-        redirect_uri='http://{}:{}'.format('localhost', httpd.server_port),
-        scope='activity:write',
+        redirect_uri="http://{}:{}".format("localhost", httpd.server_port),
+        scope="activity:write",
     )
-    print('Open the following page to authorize drpexe-uploader to '
-          'upload files to your Strava account\n')
+    print(
+        "Open the following page to authorize drpexe-uploader to "
+        "upload files to your Strava account\n"
+    )
     print(url)
 
     httpd.handle_request()
@@ -118,26 +124,26 @@ class AuthRequestHandler(BaseHTTPRequestHandler):
         params = parse_qs(querystring)
 
         client = Client()
-        token_data = client.exchange_code_for_token(client_id=CLIENT_ID,
-                                                    client_secret=CLIENT_SECRET,
-                                                    code=params['code'][0])
+        token_data = client.exchange_code_for_token(
+            client_id=CLIENT_ID, client_secret=CLIENT_SECRET, code=params["code"][0]
+        )
 
         # Write credentials to disk. Use the simplest pickle protocol
         # to keep it human-readable.
-        with open(STRAVA_CREDENTIALS_FILE, 'wb') as f:
+        with open(STRAVA_CREDENTIALS_FILE, "wb") as f:
             pickle.dump(token_data, f, 0)
 
         self.send_response(200)
-        self.send_header('Content-type', 'text/html')
+        self.send_header("Content-type", "text/html")
         self.end_headers()
         self.wfile.write(
             (
-                'This message means you have been successfully authenticated.'
-                '\n\nYou can now close this page.'
+                "This message means you have been successfully authenticated."
+                "\n\nYou can now close this page."
             ).encode("utf-8")
         )
-        print('Authentication succeeded')
-        print('Credentials have been saved to %s' % STRAVA_CREDENTIALS_FILE)
+        print("Authentication succeeded")
+        print("Credentials have been saved to %s" % STRAVA_CREDENTIALS_FILE)
 
 
 if __name__ == "__main__":
