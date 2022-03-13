@@ -353,8 +353,10 @@ def main():
         help="don't download files marked as 'archived' on the watch",
     )
     parser.add_argument(
-        "--oldest-first", action="store_true",
-        help="download the oldest activities first")
+        "--oldest-first",
+        action="store_true",
+        help="download the oldest activities first",
+    )
     args = parser.parse_args()
 
     # Set up config dir
