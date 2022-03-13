@@ -150,6 +150,7 @@ class AntFSCLI(Application):
         self._uploading = args.upload
         self._pair = args.pair
         self._skip_archived = args.skip_archived
+        self._oldest_first = args.oldest_first
 
     def setup_channel(self, channel):
         channel.set_period(4096)
@@ -244,6 +245,9 @@ class AntFSCLI(Application):
         # Remove archived files from the list
         if self._skip_archived:
             downloading = [fil for fil in downloading if not fil.is_archived()]
+
+        if not self._oldest_first:
+            downloading = list(reversed(downloading))
 
         print("Downloading", len(downloading), "file(s)")
         if self._uploading:
@@ -348,6 +352,9 @@ def main():
         action="store_true",
         help="don't download files marked as 'archived' on the watch",
     )
+    parser.add_argument(
+        "--oldest-first", action="store_true",
+        help="download the oldest activities first")
     args = parser.parse_args()
 
     # Set up config dir
